@@ -1,0 +1,24 @@
+{
+  "name": "bfps",
+  "version": "0.1.0",
+  "description": "game",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "css-loader": "^7.1.2",
+    "mini-css-extract-plugin": "^2.9.2",
+    "style-loader": "^4.0.0",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.0"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^7.54.0",
+    "@babylonjs/loaders": "^7.54.0",
+    "@babylonjs/materials": "^7.54.0"
+  }
+}
