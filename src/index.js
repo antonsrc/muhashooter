@@ -1,155 +1,108 @@
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders/glTF/2.0/glTFLoader";
+import "@babylonjs/inspector";
 import "./styles.css";
 
-import "@babylonjs/core/Debug/debugLayer";
-import "@babylonjs/inspector";
+import { createGround } from "./ground.js";
+
+const ground = {
+  size: 2000,
+};
+
+setupEventListeners();
 
 const canvas = document.getElementById("renderCanvas");
-const engine = new BABYLON.Engine(canvas, true, { stencil: false });
+const engine = new BABYLON.Engine(canvas, false, { stencil: false }, true);
+const scene = createScene();
 
-const MAP_SIZE = 1_000;
-
-window.addEventListener("resize", () => {
-  engine.resize();
-});
-
-window.addEventListener("keydown", (event) => {
-  if (event.ctrlKey && event.altKey) {
-    if (scene.debugLayer.isVisible()) {
-      scene.debugLayer.hide();
-    } else {
-      scene.debugLayer.show({ overlay: true });
-    }
-  }
+engine.runRenderLoop(() => {
+  scene.render();
 });
 
 function createScene() {
   const scene = new BABYLON.Scene(engine);
 
-  // camera
+  /* camera */
+  const cameraHeight = 5;
+  const cameraRadius = 15;
+  const cameraAlpha = Math.PI / 2;
+  const cameraBeta = Math.PI / 2 - 0.3;
   const camera = new BABYLON.ArcRotateCamera(
     "camera",
-    Math.PI / 2,
-    Math.PI / 4,
-    12,
-    BABYLON.Vector3.Zero(),
+    cameraAlpha,
+    cameraBeta,
+    cameraRadius,
+    new BABYLON.Vector3(0, cameraHeight, 0),
     scene
   );
   camera.attachControl(canvas, true);
   camera.lowerRadiusLimit = 5;
   camera.upperRadiusLimit = 500;
+  camera.lowerBetaLimit = 0;
+  camera.upperBetaLimit = Math.PI / 2;
 
-  // light
-  const light = new BABYLON.HemisphericLight(
-    "light",
+  /* light */
+  const light = new BABYLON.DirectionalLight(
+    "directLight",
+    new BABYLON.Vector3(-1, -2, -1),
+    scene
+  );
+  light.intensity = 2;
+  const hemisphericLight = new BABYLON.HemisphericLight(
+    "hemisphericLight",
     new BABYLON.Vector3(0, 1, 0),
     scene
   );
-  light.intensity = 1;
-  light.specular = new BABYLON.Color3(0, 0, 0);
+  hemisphericLight.diffuse = new BABYLON.Color3(1, 1, 1);
+  hemisphericLight.intensity = 0.5;
 
-  // ground
-  const ground = BABYLON.MeshBuilder.CreateGround(
-    "ground",
-    { width: MAP_SIZE, height: MAP_SIZE },
-    scene
-  );
-  const groundMaterial = new BABYLON.StandardMaterial("groundMaterial", scene);
-  // groundMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.3, 0.4);
-  const groundTexture = new BABYLON.Texture("./grass.jpg", scene);
-  groundTexture.uScale = 20;
-  groundTexture.vScale = 20;
-  groundMaterial.diffuseTexture = groundTexture;
-  // groundMaterial.wireframe = true
-  ground.material = groundMaterial;
+  const shadowGenerator = new BABYLON.CascadedShadowGenerator(2048, light);
+  shadowGenerator.cascadeCount = 3;
+  shadowGenerator.lambda = 0.95;
+  shadowGenerator.quality = BABYLON.ShadowGenerator.QUALITY_LOW;
+  shadowGenerator.bias = 0.001;
+  shadowGenerator.normalBias = 0.01;
 
-  // cubes model
-  const cubes = BABYLON.LoadAssetContainerAsync("./cubes.gltf", scene)
+  /* ground */
+  createGround(scene, { size: ground.size });
+
+  /* cubes */
+  BABYLON.LoadAssetContainerAsync("./cubes.gltf", scene)
     .then((container) => {
-      const [root] = container.meshes;
-      root.scaling.setAll(1);
-      root.position.x = 10;
+      const [rootCubes] = container.meshes;
+      rootCubes.scaling.setAll(3);
+      rootCubes.position.x = 10;
+
+      shadowGenerator.addShadowCaster(rootCubes);
+
       container.addAllToScene();
     })
     .catch((error) => {
       console.error("Error loading model:", error);
     });
 
-  // tree model
-  const tree = BABYLON.LoadAssetContainerAsync("./tree.glb", scene)
-    .then((container) => {
-      const [root] = container.meshes;
-      root.scaling.setAll(1);
-      root.position.x = -10;
-      // container.addAllToScene();
-
-      const childMeshes = root.getChildMeshes(false);
-      const merged = BABYLON.Mesh.MergeMeshes(
-        childMeshes,
-        true,
-        true,
-        undefined,
-        false,
-        false
-      );
-      merged.isPickable = false;
-      merged.checkCollisions = false;
-
-      const COUNT = 2_000;
-      const offset = 10;
-      const max = MAP_SIZE / 2 - 2 - offset;
-
-      const getPos = () =>
-        (offset + Math.random() * max) * (Math.random() > 0.5 ? 1 : -1);
-
-      for (let i = 0; i < COUNT; i++) {
-        const clone = merged.createInstance("inst_" + i);
-        const x = getPos();
-        const z = getPos();
-        clone.position.set(x, 0, z);
-        clone.rotate(root.up, BABYLON.Scalar.RandomRange(1, 180));
-        clone.scaling.setAll(BABYLON.Scalar.RandomRange(0.5, 2));
-        clone.freezeWorldMatrix();
-        clone.material.freeze();
-        clone.alwaysSelectAsActiveMesh = true;
-      }
-
-      // const bufferMatrices = new Float32Array(16 * COUNT);
-      // for (let i = 0; i < COUNT; i++) {
-      //   const x = getPos();
-      //   const z = getPos();
-      //   // origin.x = x;
-      //   // origin.z = z;
-      //   // const result = scene.pickWithRay(ray, (mesh) => mesh === ground);
-      //   // const y = result.pickedPoint?.y ?? 0;
-      //   const pos = new BABYLON.Vector3(x, 0, z);
-      //   const scale = BABYLON.Vector3.One().setAll(
-      //     BABYLON.Scalar.RandomRange(2, 10)
-      //   );
-      //   const angle = BABYLON.Scalar.RandomRange(0, 2 * Math.PI);
-      //   const rot = BABYLON.Quaternion.FromEulerAngles(0, angle, 0);
-      //   const matrix = BABYLON.Matrix.Compose(scale, rot, pos);
-      //   matrix.copyToArray(bufferMatrices, i * 16);
-      // }
-      // merged.thinInstanceSetBuffer("matrix", bufferMatrices, 16, true);
-    })
-    .catch((error) => {
-      console.error("Error loading model:", error);
-    });
-
-  // cat model
+  /* cat */
   const cat = BABYLON.LoadAssetContainerAsync("./cat.glb", scene)
     .then((container) => {
-      const [root] = container.meshes;
-      root.scaling.setAll(1);
-      container.addAllToScene();
-      root.rotationQuaternion = BABYLON.Quaternion.Identity();
-
+      const [rootCat] = container.meshes;
+      rootCat.scaling.setAll(1);
       playIdle(container);
 
-      const targetPoint = root.position.clone();
-      const targetRotation = root.rotationQuaternion.clone();
+      rootCat.getChildMeshes().forEach((mesh) => {
+        mesh.receiveShadows = true;
+        if (mesh.material && mesh.material instanceof BABYLON.PBRMaterial) {
+          mesh.material.specularColor = BABYLON.Color3.Black();
+          mesh.material.roughness = 1.0;
+          mesh.material.metallic = 0.0;
+        }
+      });
+
+      shadowGenerator.addShadowCaster(rootCat);
+
+      rootCat.rotationQuaternion = BABYLON.Quaternion.Identity();
+
+      const targetPoint = rootCat.position.clone();
+      const targetRotation = rootCat.rotationQuaternion.clone();
 
       const speed = 10;
       const rotLerpSpeed = 10;
@@ -179,8 +132,8 @@ function createScene() {
         const deltaTime = (scene.deltaTime ?? 1) / 1000;
 
         if (Math.abs(axis.forward) > 0.001) {
-          const nextPoint = root.position.add(
-            root.forward.scale(axis.forward * 0.3)
+          const nextPoint = rootCat.position.add(
+            rootCat.forward.scale(axis.forward * 0.3)
           );
           targetPoint.copyFrom(nextPoint);
         }
@@ -188,20 +141,20 @@ function createScene() {
         if (Math.abs(axis.right) > 0.001) {
           targetRotation.multiplyInPlace(
             BABYLON.Quaternion.RotationAxis(
-              root.up,
+              rootCat.up,
               axis.right * rotAmount * deltaTime
             )
           );
         }
 
         BABYLON.Quaternion.SlerpToRef(
-          root.rotationQuaternion,
+          rootCat.rotationQuaternion,
           targetRotation,
           rotLerpSpeed * deltaTime,
-          root.rotationQuaternion
+          rootCat.rotationQuaternion
         );
 
-        const diff = targetPoint.subtract(root.position);
+        const diff = targetPoint.subtract(rootCat.position);
 
         if (diff.length() < maxDelta) {
           playIdle(container);
@@ -212,8 +165,54 @@ function createScene() {
 
         const dir = diff.normalize();
         const velocity = dir.scaleInPlace(speed * deltaTime);
-        root.position.addInPlace(velocity);
+        rootCat.position.addInPlace(velocity);
       });
+
+      container.addAllToScene();
+    })
+    .catch((error) => {
+      console.error("Error loading model:", error);
+    });
+
+  /* tree */
+  BABYLON.LoadAssetContainerAsync("./tree.glb", scene)
+    .then((container) => {
+      const [rootTree] = container.meshes;
+      rootTree.scaling.setAll(1);
+      rootTree.position.x = -10;
+
+      const childMeshes = rootTree.getChildMeshes(false);
+      const merged = BABYLON.Mesh.MergeMeshes(
+        childMeshes,
+        true,
+        true,
+        undefined,
+        false,
+        false
+      );
+
+      shadowGenerator.addShadowCaster(merged);
+
+      const COUNT = 2_000;
+      const offset = 10;
+      const max = ground.size / 2 - 2 - offset;
+
+      const getPos = () =>
+        (offset + Math.random() * max) * (Math.random() > 0.5 ? 1 : -1);
+
+      for (let i = 0; i < COUNT; i++) {
+        const instance = merged.createInstance("treeInstance_" + i);
+        const x = getPos();
+        const z = getPos();
+
+        instance.position.set(x, 0, z);
+        instance.rotate(rootTree.up, BABYLON.Scalar.RandomRange(1, 180));
+        instance.scaling.setAll(BABYLON.Scalar.RandomRange(0.5, 2));
+        instance.freezeWorldMatrix();
+        instance.material.freeze();
+        instance.alwaysSelectAsActiveMesh = true;
+        shadowGenerator.addShadowCaster(instance);
+      }
     })
     .catch((error) => {
       console.error("Error loading model:", error);
@@ -222,16 +221,26 @@ function createScene() {
   return scene;
 }
 
-const scene = createScene();
-
-engine.runRenderLoop(() => {
-  scene.render();
-});
-
 function playIdle(container) {
   container.animationGroups.find((group) => group.name === "idle").start(true);
 }
 
 function playWalk(container) {
   container.animationGroups.find((group) => group.name === "walk").play();
+}
+
+function setupEventListeners() {
+  window.addEventListener("resize", () => {
+    engine.resize();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.ctrlKey && event.altKey) {
+      if (scene.debugLayer.isVisible()) {
+        scene.debugLayer.hide();
+      } else {
+        scene.debugLayer.show({ overlay: true });
+      }
+    }
+  });
 }
