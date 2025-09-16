@@ -41,11 +41,12 @@ async function createScene(canvas, engine) {
   const scene = new BABYLON.Scene(engine);
   const light = createLight(scene);
   const shadows = createShadows(light);
-  createCamera(scene, canvas);
   createGround(scene, { size: ground.size });
 
   const cat = await loadCat(scene, shadows, axis);
   cat.addAllToScene();
+
+  createCamera(scene, canvas, cat.meshes[0]);
 
   const cubes = await loadCubes(scene, shadows);
   cubes.addAllToScene();
