@@ -3,28 +3,34 @@ import * as BABYLON from "@babylonjs/core";
 export async function loadCat(scene, shadows, axis) {
   try {
     const catContainer = await BABYLON.LoadAssetContainerAsync(
-      "./cat_to-Y.glb",
+      "./cat_anim_speed.glb",
       scene
     );
     let [catMeshes] = catContainer.meshes;
-    initCatMeshes(catContainer, shadows);
+    const catAnimations = {
+      walk: catContainer.animationGroups.find((g) => g.name === "walk"),
+      idle: catContainer.animationGroups.find((g) => g.name === "idle"),
+    };
 
-    const targetPoint = catMeshes.position.clone();
+    console.log(catContainer, catAnimations);
+
+    initCatMeshes(catContainer, catAnimations, shadows);
+
     const targetRotation = catMeshes.rotationQuaternion.clone();
-    const speed = 10;
-    const maxDelta = speed * 0.01;
+    const currentVelocity = BABYLON.Vector3.Zero();
 
     const catObservableParams = {
       catMeshes,
       scene,
-      speed,
-      targetPoint,
+      speed: 8,
       targetRotation,
       rotLerpSpeed: 10,
       rotAmount: 4,
-      maxDelta,
       catContainer,
       axis,
+      currentVelocity,
+      acceleration: 20,
+      catAnimations,
     };
     scene.onBeforeRenderObservable.add(() =>
       catBeforeRenderObservable(catObservableParams)
@@ -40,27 +46,44 @@ function catBeforeRenderObservable(params = {}) {
     catMeshes,
     scene,
     speed,
-    targetPoint,
     targetRotation,
     rotLerpSpeed,
     rotAmount,
-    maxDelta,
     catContainer,
     axis,
+    currentVelocity,
+    acceleration,
+    catAnimations,
   } = params;
 
   if (!catMeshes) return;
 
   const deltaTime = (scene.deltaTime ?? 1) / 1000;
+  let isMoving = false;
 
-  if (Math.abs(axis.forward) > 0.001) {
-    const nextPoint = catMeshes.position.add(
-      catMeshes.forward.scale(axis.forward * 0.3)
+  if (axis.forward) {
+    isMoving = true;
+    const targetVelocity = catMeshes.forward.scale(axis.forward * speed);
+
+    BABYLON.Vector3.LerpToRef(
+      currentVelocity,
+      targetVelocity,
+      acceleration * deltaTime,
+      currentVelocity
     );
-    targetPoint.copyFrom(nextPoint);
+  } else {
+    isMoving = false;
+    BABYLON.Vector3.LerpToRef(
+      currentVelocity,
+      BABYLON.Vector3.Zero(),
+      acceleration * deltaTime,
+      currentVelocity
+    );
   }
 
-  if (Math.abs(axis.right) > 0.001) {
+  catMeshes.position.addInPlace(currentVelocity.scale(deltaTime));
+
+  if (axis.right) {
     targetRotation.multiplyInPlace(
       BABYLON.Quaternion.RotationAxis(
         catMeshes.up,
@@ -76,34 +99,24 @@ function catBeforeRenderObservable(params = {}) {
     catMeshes.rotationQuaternion
   );
 
-  const diff = targetPoint.subtract(catMeshes.position);
-
-  if (diff.length() < maxDelta) {
-    setPlayIdle(catContainer);
-    return;
+  if (isMoving) {
+    setPlayWalk(catAnimations);
+  } else {
+    setPlayIdle(catAnimations);
   }
-
-  setPlayWalk(catContainer);
-
-  const dir = diff.normalize();
-  const velocity = dir.scaleInPlace(speed * deltaTime);
-  catMeshes.position.addInPlace(velocity);
 }
 
-function initCatMeshes(container, shadows) {
+function initCatMeshes(container, animations, shadows) {
   const [meshes] = container.meshes;
 
-  setPlayIdle(container);
+  container.animationGroups.forEach((anim) => {
+    anim.enableBlending = true;
+    anim.blendingSpeed = 0.1;
+  });
+
+  setPlayIdle(animations);
   setRoughnessMaterial(meshes);
   shadows.addShadowCaster(meshes);
-}
-
-function setPlayIdle(container) {
-  container.animationGroups.find((group) => group.name === "idle").start(true);
-}
-
-function setPlayWalk(container) {
-  container.animationGroups.find((group) => group.name === "walk").play();
 }
 
 function setRoughnessMaterial(rootMeshes) {
@@ -115,4 +128,18 @@ function setRoughnessMaterial(rootMeshes) {
       mesh.material.metallic = 0.0;
     }
   });
+}
+
+function setPlayIdle(animations) {
+  if (!animations.idle.isPlaying) {
+    animations.walk.stop();
+    animations.idle.start(true);
+  }
+}
+
+function setPlayWalk(animations) {
+  if (!animations.walk.isPlaying) {
+    animations.idle.stop();
+    animations.walk.start(true);
+  }
 }
