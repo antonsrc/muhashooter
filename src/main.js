@@ -11,14 +11,15 @@ import { loadTrees } from "./trees.js";
 import { createLight } from "./light.js";
 import { createShadows } from "./shadows.js";
 import { createGround } from "./ground.js";
-import { createCamera } from "./camera.js";
+// 🔥 УДАЛИЛ: import { createCamera } from "./camera.js"; - камера теперь в cat.js
 
 import { initKeyboardObservable } from "./inputMngr.js";
 
 const axis = {
-  forward: 0,
-  right: 0,
-  up: 0,
+  w: 0,
+  a: 0,
+  s: 0,
+  d: 0,
 };
 
 const ground = {
@@ -43,10 +44,9 @@ async function createScene(canvas, engine) {
   const shadows = createShadows(light);
   createGround(scene, { size: ground.size });
 
+  // 🔥 УПРОЩЕНО: Просто загружаем кота - камера создастся внутри
   const cat = await loadCat(scene, shadows, axis);
   cat.addAllToScene();
-
-  createCamera(scene, canvas, cat.meshes[0]);
 
   const cubes = await loadCubes(scene, shadows);
   cubes.addAllToScene();
