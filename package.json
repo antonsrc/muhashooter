@@ -8,6 +8,9 @@
   },
   "author": "",
   "license": "ISC",
+  "prettier": {
+    "printWidth": 30
+  },
   "devDependencies": {
     "@babylonjs/inspector": "^7.54.3",
     "css-loader": "^7.1.2",

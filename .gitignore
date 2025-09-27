@@ -5,3 +5,5 @@ build/
 
 .vscode/
 Thumbs.db
+*.blend
+*.blend1
