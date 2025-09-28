@@ -13,8 +13,7 @@ export async function loadCat(scene, shadows, axis) {
     await setShadows(meshes, shadows);
 
     // 🔥 ДОБАВЛЕНО: Создаем камеру внутри loadCat
-    const canvas = scene.getEngine().getRenderingCanvas();
-    const camera = createCatCamera(scene, canvas, meshes);
+    const camera = createCatCamera(scene, meshes);
 
     const currentVelocity = B.Vector3.Zero();
 
@@ -31,7 +30,6 @@ export async function loadCat(scene, shadows, axis) {
       meshes,
       scene,
       speed: 8,
-      container,
       axis,
       currentVelocity,
       acceleration: 20,
@@ -40,6 +38,7 @@ export async function loadCat(scene, shadows, axis) {
       state,
     };
 
+    // 🔁
     scene.onBeforeRenderObservable.add(() =>
       catBeforeRenderObservable(catObservableParams)
     );
@@ -86,24 +85,21 @@ function getAnimationGroups(container, animations) {
 
 // ✨
 // 🔥 ДОБАВЛЕНО: Функция создания камеры внутри модуля кота
-function createCatCamera(scene, canvas, targetMesh) {
-  const headHeightOffset = 3;
-  const cameraRadius = 15;
+function createCatCamera(scene, targetMesh) {
+  const headHeightOffset = 4.7;
 
   // 🔥 ИСПРАВЛЕНО: Начальная позиция с учетом позиции кота
-  const initialTarget = targetMesh
-    ? new B.Vector3(
-        targetMesh.position.x,
-        targetMesh.position.y + headHeightOffset,
-        targetMesh.position.z
-      )
-    : new B.Vector3(0, headHeightOffset, 0);
+  const initialTarget = new B.Vector3(
+    targetMesh.position.x,
+    targetMesh.position.y,
+    targetMesh.position.z
+  );
 
   const camera = new B.ArcRotateCamera(
     "camera",
     -Math.PI / 2,
     Math.PI / 2 - 0.3,
-    cameraRadius,
+    15,
     initialTarget,
     scene
   );
@@ -112,11 +108,12 @@ function createCatCamera(scene, canvas, targetMesh) {
   camera.upperRadiusLimit = 500;
   camera.lowerBetaLimit = 0.1;
   camera.upperBetaLimit = Math.PI / 2;
-  camera.wheelPrecision = 50;
+  camera.wheelPrecision = 5;
   camera.angularSensibilityX = 1000;
   camera.angularSensibilityY = 1000;
   camera.inertia = 0.8;
 
+  const canvas = scene.getEngine().getRenderingCanvas();
   camera.attachControl(canvas, true);
 
   // 🔥 ПЕРЕПИСАНО: Полное обновление позиции камеры вместе с котом
@@ -148,14 +145,13 @@ function createCatCamera(scene, canvas, targetMesh) {
   return camera;
 }
 
-// ✨
+// ✨🔁
 // 🔥 ИСПРАВЛЕНО: Направления движения (были перепутаны A и D)
 function catBeforeRenderObservable(params = {}) {
   const {
     meshes,
     scene,
     speed,
-    container,
     axis,
     currentVelocity,
     acceleration,
