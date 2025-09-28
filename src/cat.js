@@ -1,49 +1,22 @@
-import * as BABYLON from "@babylonjs/core";
+import * as B from "@babylonjs/core";
+import { setAnimation } from "./utils.js";
 
 // ✨
-export async function loadCat(
-  scene,
-  shadows,
-  axis
-) {
+export async function loadCat(scene, shadows, axis) {
   try {
-    const catContainer =
-      await BABYLON.LoadAssetContainerAsync(
-        "./cat.glb",
-        scene
-      );
-    let [catMeshes] =
-      catContainer.meshes;
-    const catAnimations = {
-      walk: catContainer.animationGroups.find(
-        (g) =>
-          g.name === "walk"
-      ),
-      idle: catContainer.animationGroups.find(
-        (g) =>
-          g.name === "idle"
-      ),
-    };
-
-    initCatMeshes(
-      catContainer,
-      catAnimations,
-      shadows
-    );
+    const container = await B.LoadAssetContainerAsync("./cat.glb", scene);
+    const [meshes] = container.meshes;
+    const animations = getAnimationGroups(container, ["walk", "idle"]);
+    await setAnimation("idle", ["walk"], animations);
+    await setAnimationBlending(container);
+    await setRoughnessMaterial(meshes);
+    await setShadows(meshes, shadows);
 
     // 🔥 ДОБАВЛЕНО: Создаем камеру внутри loadCat
-    const canvas = scene
-      .getEngine()
-      .getRenderingCanvas();
-    const camera =
-      createCatCamera(
-        scene,
-        canvas,
-        catMeshes
-      );
+    const canvas = scene.getEngine().getRenderingCanvas();
+    const camera = createCatCamera(scene, canvas, meshes);
 
-    const currentVelocity =
-      BABYLON.Vector3.Zero();
+    const currentVelocity = B.Vector3.Zero();
 
     const state = {
       prevAxisState: {
@@ -54,129 +27,122 @@ export async function loadCat(
       },
     };
 
-    const catObservableParams =
-      {
-        catMeshes,
-        scene,
-        speed: 8,
-        catContainer,
-        axis,
-        currentVelocity,
-        acceleration: 20,
-        catAnimations,
-        camera,
-        state,
-      };
+    const catObservableParams = {
+      meshes,
+      scene,
+      speed: 8,
+      container,
+      axis,
+      currentVelocity,
+      acceleration: 20,
+      animations,
+      camera,
+      state,
+    };
 
-    scene.onBeforeRenderObservable.add(
-      () =>
-        catBeforeRenderObservable(
-          catObservableParams
-        )
+    scene.onBeforeRenderObservable.add(() =>
+      catBeforeRenderObservable(catObservableParams)
     );
 
-    return catContainer;
+    return container;
   } catch (error) {
-    console.error(
-      "Error loading model:",
-      error
-    );
+    console.error("Error loading model:", error);
   }
 }
 
 // ✨
+async function setAnimationBlending(container) {
+  container.animationGroups.forEach((anim) => {
+    anim.enableBlending = true;
+    anim.blendingSpeed = 0.4;
+  });
+}
+
+// ✨
+async function setShadows(meshes, shadows) {
+  shadows.addShadowCaster(meshes);
+}
+
+// ✨
+async function setRoughnessMaterial(meshes) {
+  meshes.getChildMeshes().forEach((mesh) => {
+    mesh.receiveShadows = true;
+    if (mesh.material) {
+      mesh.material.specularColor = B.Color3.Black();
+      mesh.material.roughness = 1.0;
+      mesh.material.metallic = 0.0;
+    }
+  });
+}
+
+// ✨
+function getAnimationGroups(container, animations) {
+  const groups = {};
+  animations.forEach((name) => {
+    groups[name] = container.animationGroups.find((g) => g.name === name);
+  });
+  return groups;
+}
+
+// ✨
 // 🔥 ДОБАВЛЕНО: Функция создания камеры внутри модуля кота
-function createCatCamera(
-  scene,
-  canvas,
-  targetMesh
-) {
+function createCatCamera(scene, canvas, targetMesh) {
   const headHeightOffset = 3;
   const cameraRadius = 15;
 
   // 🔥 ИСПРАВЛЕНО: Начальная позиция с учетом позиции кота
-  const initialTarget =
-    targetMesh
-      ? new BABYLON.Vector3(
-          targetMesh.position.x,
-          targetMesh.position
-            .y +
-            headHeightOffset,
-          targetMesh.position.z
-        )
-      : new BABYLON.Vector3(
-          0,
-          headHeightOffset,
-          0
-        );
+  const initialTarget = targetMesh
+    ? new B.Vector3(
+        targetMesh.position.x,
+        targetMesh.position.y + headHeightOffset,
+        targetMesh.position.z
+      )
+    : new B.Vector3(0, headHeightOffset, 0);
 
-  const camera =
-    new BABYLON.ArcRotateCamera(
-      "camera",
-      -Math.PI / 2,
-      Math.PI / 2 - 0.3,
-      cameraRadius,
-      initialTarget,
-      scene
-    );
+  const camera = new B.ArcRotateCamera(
+    "camera",
+    -Math.PI / 2,
+    Math.PI / 2 - 0.3,
+    cameraRadius,
+    initialTarget,
+    scene
+  );
 
   camera.lowerRadiusLimit = 5;
   camera.upperRadiusLimit = 500;
   camera.lowerBetaLimit = 0.1;
-  camera.upperBetaLimit =
-    Math.PI / 2;
+  camera.upperBetaLimit = Math.PI / 2;
   camera.wheelPrecision = 50;
   camera.angularSensibilityX = 1000;
   camera.angularSensibilityY = 1000;
   camera.inertia = 0.8;
 
-  camera.attachControl(
-    canvas,
-    true
-  );
+  camera.attachControl(canvas, true);
 
   // 🔥 ПЕРЕПИСАНО: Полное обновление позиции камеры вместе с котом
   if (targetMesh) {
-    let lastTargetPosition =
-      initialTarget.clone();
+    let lastTargetPosition = initialTarget.clone();
 
-    const updateCamera =
-      () => {
-        const currentTargetPosition =
-          targetMesh.position.clone();
-        currentTargetPosition.y +=
-          headHeightOffset;
+    const updateCamera = () => {
+      const currentTargetPosition = targetMesh.position.clone();
+      currentTargetPosition.y += headHeightOffset;
 
-        // 🔥 ВЫЧИСЛЯЕМ смещение кота от предыдущей позиции
-        const positionDelta =
-          currentTargetPosition.subtract(
-            lastTargetPosition
-          );
+      // 🔥 ВЫЧИСЛЯЕМ смещение кота от предыдущей позиции
+      const positionDelta = currentTargetPosition.subtract(lastTargetPosition);
 
-        // 🔥 ОБНОВЛЯЕМ цель камеры
-        camera.setTarget(
-          currentTargetPosition
-        );
+      // 🔥 ОБНОВЛЯЕМ цель камеры
+      camera.setTarget(currentTargetPosition);
 
-        // 🔥 ОБНОВЛЯЕМ позицию камеры (смещаем вместе с котом)
-        if (
-          positionDelta.length() >
-          0.001
-        ) {
-          camera.position =
-            camera.position.add(
-              positionDelta
-            );
-        }
+      // 🔥 ОБНОВЛЯЕМ позицию камеры (смещаем вместе с котом)
+      if (positionDelta.length() > 0.001) {
+        camera.position = camera.position.add(positionDelta);
+      }
 
-        lastTargetPosition =
-          currentTargetPosition.clone();
-      };
+      lastTargetPosition = currentTargetPosition.clone();
+    };
 
     updateCamera();
-    scene.onBeforeRenderObservable.add(
-      updateCamera
-    );
+    scene.onBeforeRenderObservable.add(updateCamera);
   }
 
   return camera;
@@ -184,118 +150,74 @@ function createCatCamera(
 
 // ✨
 // 🔥 ИСПРАВЛЕНО: Направления движения (были перепутаны A и D)
-function catBeforeRenderObservable(
-  params = {}
-) {
+function catBeforeRenderObservable(params = {}) {
   const {
-    catMeshes,
+    meshes,
     scene,
     speed,
-    catContainer,
+    container,
     axis,
     currentVelocity,
     acceleration,
-    catAnimations,
+    animations,
     camera,
     state,
   } = params;
 
-  if (!catMeshes || !camera)
-    return;
+  if (!meshes || !camera) return;
 
-  const deltaTime =
-    (scene.deltaTime ?? 1) /
-    1000;
+  const deltaTime = (scene.deltaTime ?? 1) / 1000;
   let isMoving = false;
 
   // Движение относительно камеры
-  if (
-    axis.w ||
-    axis.a ||
-    axis.s ||
-    axis.d
-  ) {
+  if (axis.w || axis.a || axis.s || axis.d) {
     isMoving = true;
 
-    const cameraForward =
-      getCameraForwardDirection(
-        camera
-      );
-    const cameraRight =
-      getCameraRightDirection(
-        camera
-      );
+    const cameraForward = getCameraForwardDirection(camera);
+    const cameraRight = getCameraRightDirection(camera);
 
-    let moveDirection =
-      BABYLON.Vector3.Zero();
+    let moveDirection = B.Vector3.Zero();
 
-    if (axis.w)
-      moveDirection.addInPlace(
-        cameraForward
-      ); // Вперед
-    if (axis.s)
-      moveDirection.addInPlace(
-        cameraForward.scale(
-          -1
-        )
-      ); // Назад
-    if (axis.a)
-      moveDirection.addInPlace(
-        cameraRight
-      ); // Влево 🔥 ИСПРАВЛЕНО
-    if (axis.d)
-      moveDirection.addInPlace(
-        cameraRight.scale(-1)
-      ); // Вправо 🔥 ИСПРАВЛЕНО
+    if (axis.w) moveDirection.addInPlace(cameraForward); // Вперед
+    if (axis.s) moveDirection.addInPlace(cameraForward.scale(-1)); // Назад
+    if (axis.a) moveDirection.addInPlace(cameraRight); // Влево 🔥 ИСПРАВЛЕНО
+    if (axis.d) moveDirection.addInPlace(cameraRight.scale(-1)); // Вправо 🔥 ИСПРАВЛЕНО
 
     moveDirection.normalize();
-    const targetVelocity =
-      moveDirection.scale(
-        speed
-      );
+    const targetVelocity = moveDirection.scale(speed);
 
-    BABYLON.Vector3.LerpToRef(
+    B.Vector3.LerpToRef(
       currentVelocity,
       targetVelocity,
-      acceleration *
-        deltaTime,
+      acceleration * deltaTime,
       currentVelocity
     );
 
     // Автоматический поворот
-    if (
-      moveDirection.length() >
-      0.1
-    ) {
-      const targetRotation =
-        BABYLON.Quaternion.FromLookDirectionLH(
-          moveDirection,
-          BABYLON.Axis.Y
-        );
+    if (moveDirection.length() > 0.1) {
+      const targetRotation = B.Quaternion.FromLookDirectionLH(
+        moveDirection,
+        B.Axis.Y
+      );
 
-      BABYLON.Quaternion.SlerpToRef(
-        catMeshes.rotationQuaternion,
+      B.Quaternion.SlerpToRef(
+        meshes.rotationQuaternion,
         targetRotation,
         10 * deltaTime,
-        catMeshes.rotationQuaternion
+        meshes.rotationQuaternion
       );
     }
   } else {
     isMoving = false;
-    BABYLON.Vector3.LerpToRef(
+    B.Vector3.LerpToRef(
       currentVelocity,
-      BABYLON.Vector3.Zero(),
-      acceleration *
-        deltaTime,
+      B.Vector3.Zero(),
+      acceleration * deltaTime,
       currentVelocity
     );
   }
 
-  catMeshes.position.addInPlace(
-    currentVelocity.scale(
-      deltaTime
-    )
-  );
+  meshes.position.addInPlace(currentVelocity.scale(deltaTime));
   state.prevAxisState = {
     w: axis.w,
     a: axis.a,
@@ -304,117 +226,22 @@ function catBeforeRenderObservable(
   };
 
   if (isMoving) {
-    setPlayWalk(
-      catAnimations
-    );
+    setAnimation("walk", ["idle"], animations);
   } else {
-    setPlayIdle(
-      catAnimations
-    );
+    setAnimation("idle", ["walk"], animations);
   }
 }
 
 // ✨
 // Остальные функции без изменений
-function getCameraForwardDirection(
-  camera
-) {
-  const forward =
-    camera.getForwardRay()
-      .direction;
-  return new BABYLON.Vector3(
-    forward.x,
-    0,
-    forward.z
-  ).normalize();
+function getCameraForwardDirection(camera) {
+  const forward = camera.getForwardRay().direction;
+  return new B.Vector3(forward.x, 0, forward.z).normalize();
 }
 
 // ✨
-function getCameraRightDirection(
-  camera
-) {
-  const forward =
-    getCameraForwardDirection(
-      camera
-    );
-  const right =
-    BABYLON.Vector3.Cross(
-      forward,
-      BABYLON.Vector3.Up()
-    );
+function getCameraRightDirection(camera) {
+  const forward = getCameraForwardDirection(camera);
+  const right = B.Vector3.Cross(forward, B.Vector3.Up());
   return right.normalize();
-}
-
-// ✨
-function initCatMeshes(
-  container,
-  animations,
-  shadows
-) {
-  const [meshes] =
-    container.meshes;
-
-  container.animationGroups.forEach(
-    (anim) => {
-      anim.enableBlending = true;
-      anim.blendingSpeed = 0.1;
-    }
-  );
-
-  setPlayIdle(animations);
-  setRoughnessMaterial(
-    meshes
-  );
-  shadows.addShadowCaster(
-    meshes
-  );
-}
-
-// ✨
-function setRoughnessMaterial(
-  rootMeshes
-) {
-  rootMeshes
-    .getChildMeshes()
-    .forEach((mesh) => {
-      mesh.receiveShadows = true;
-      if (
-        mesh.material &&
-        mesh.material instanceof
-          BABYLON.PBRMaterial
-      ) {
-        mesh.material.specularColor =
-          BABYLON.Color3.Black();
-        mesh.material.roughness = 1.0;
-        mesh.material.metallic = 0.0;
-      }
-    });
-}
-
-// ✨
-function setPlayIdle(
-  animations
-) {
-  if (
-    !animations.idle.isPlaying
-  ) {
-    animations.walk.stop();
-    animations.idle.start(
-      true
-    );
-  }
-}
-
-// ✨
-function setPlayWalk(
-  animations
-) {
-  if (
-    !animations.walk.isPlaying
-  ) {
-    animations.idle.stop();
-    animations.walk.start(
-      true
-    );
-  }
 }
