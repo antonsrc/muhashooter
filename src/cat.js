@@ -6,28 +6,24 @@ export async function loadCat(scene, shadows, axis) {
   try {
     const container = await B.LoadAssetContainerAsync("./cat.glb", scene);
     const [meshes] = container.meshes;
+
+    const catContainer = new B.TransformNode("catContainer", scene);
+    meshes.parent = catContainer;
+
     const animations = getAnimationGroups(container, ["walk", "idle"]);
     await setAnimation("idle", ["walk"], animations);
     await setAnimationBlending(container);
     await setRoughnessMaterial(meshes);
     await setShadows(meshes, shadows);
 
-    // 🔥 ДОБАВЛЕНО: Создаем камеру внутри loadCat
-    const camera = createCatCamera(scene, meshes);
+    const camera = createCatCamera(scene);
+    camera.parent = catContainer;
 
     const currentVelocity = B.Vector3.Zero();
 
-    const state = {
-      prevAxisState: {
-        w: false,
-        a: false,
-        s: false,
-        d: false,
-      },
-    };
-
     const catObservableParams = {
-      meshes,
+      catContainer, // 🔥 Теперь двигаем контейнер
+      meshes, // 🔥 Для поворота меша
       scene,
       speed: 8,
       axis,
@@ -35,7 +31,6 @@ export async function loadCat(scene, shadows, axis) {
       acceleration: 20,
       animations,
       camera,
-      state,
     };
 
     // 🔁
@@ -84,31 +79,31 @@ function getAnimationGroups(container, animations) {
 }
 
 // ✨
-// 🔥 ДОБАВЛЕНО: Функция создания камеры внутри модуля кота
-function createCatCamera(scene, targetMesh) {
-  const headHeightOffset = 4.7;
-
-  // 🔥 ИСПРАВЛЕНО: Начальная позиция с учетом позиции кота
-  const initialTarget = new B.Vector3(
-    targetMesh.position.x,
-    targetMesh.position.y,
-    targetMesh.position.z
-  );
+// 🔥 ПЕРЕРАБОТАННАЯ КАМЕРА: камера как дочерний объект контейнера
+function createCatCamera(scene) {
+  // 🔥 КАМЕРА СОЗДАЕТСЯ С НУЛЕВОЙ ПОЗИЦИЕЙ
 
   const camera = new B.ArcRotateCamera(
-    "camera",
-    -Math.PI / 2,
-    Math.PI / 2 - 0.3,
-    15,
-    initialTarget,
+    "cameraCat",
+    -Math.PI / 2, // Альфа (горизонтальный угол)
+    Math.PI / 2 - 0.3, // Бета (вертикальный угол)
+    15, // Радиус (расстояние от цели)
+    B.Vector3.Zero(), // Цель в локальных координатах контейнера
     scene
   );
 
+  // 🔥 НАСТРАИВАЕМ ЛОКАЛЬНУЮ ПОЗИЦИЮ КАМЕРЫ ОТНОСИТЕЛЬНО КОНТЕЙНЕРА
+  // Камера сзади и сверху от кота
+  camera.position = new B.Vector3(0, 4.7, -15);
+  // 🔥 ЦЕЛЬ КАМЕРЫ - В ЛОКАЛЬНЫХ КООРДИНАТАХ (смотрит на центр контейнера)
+  camera.setTarget(new B.Vector3(0, 4.7, 0));
+
+  // Настройки камеры
   camera.lowerRadiusLimit = 5;
-  camera.upperRadiusLimit = 500;
+  camera.upperRadiusLimit = 30;
   camera.lowerBetaLimit = 0.1;
   camera.upperBetaLimit = Math.PI / 2;
-  camera.wheelPrecision = 5;
+  camera.wheelPrecision = 10;
   camera.angularSensibilityX = 1000;
   camera.angularSensibilityY = 1000;
   camera.inertia = 0.8;
@@ -116,40 +111,17 @@ function createCatCamera(scene, targetMesh) {
   const canvas = scene.getEngine().getRenderingCanvas();
   camera.attachControl(canvas, true);
 
-  // 🔥 ПЕРЕПИСАНО: Полное обновление позиции камеры вместе с котом
-  if (targetMesh) {
-    let lastTargetPosition = initialTarget.clone();
-
-    const updateCamera = () => {
-      const currentTargetPosition = targetMesh.position.clone();
-      currentTargetPosition.y += headHeightOffset;
-
-      // 🔥 ВЫЧИСЛЯЕМ смещение кота от предыдущей позиции
-      const positionDelta = currentTargetPosition.subtract(lastTargetPosition);
-
-      // 🔥 ОБНОВЛЯЕМ цель камеры
-      camera.setTarget(currentTargetPosition);
-
-      // 🔥 ОБНОВЛЯЕМ позицию камеры (смещаем вместе с котом)
-      if (positionDelta.length() > 0.001) {
-        camera.position = camera.position.add(positionDelta);
-      }
-
-      lastTargetPosition = currentTargetPosition.clone();
-    };
-
-    updateCamera();
-    scene.onBeforeRenderObservable.add(updateCamera);
-  }
+  // 🔥 УБИРАЕМ РУЧНОЕ ОБНОВЛЕНИЕ КАМЕРЫ - теперь она автоматически следует за контейнером
 
   return camera;
 }
 
 // ✨🔁
-// 🔥 ИСПРАВЛЕНО: Направления движения (были перепутаны A и D)
+// 🔥 ОБНОВЛЕННАЯ ФУНКЦИЯ ДВИЖЕНИЯ: двигаем контейнер, поворачиваем меш
 function catBeforeRenderObservable(params = {}) {
   const {
-    meshes,
+    catContainer, // 🔥 Двигаем контейнер (а с ним и камеру, и кота)
+    meshes, // 🔥 Поворачиваем только меш кота
     scene,
     speed,
     axis,
@@ -157,10 +129,7 @@ function catBeforeRenderObservable(params = {}) {
     acceleration,
     animations,
     camera,
-    state,
   } = params;
-
-  if (!meshes || !camera) return;
 
   const deltaTime = (scene.deltaTime ?? 1) / 1000;
   let isMoving = false;
@@ -174,10 +143,10 @@ function catBeforeRenderObservable(params = {}) {
 
     let moveDirection = B.Vector3.Zero();
 
-    if (axis.w) moveDirection.addInPlace(cameraForward); // Вперед
-    if (axis.s) moveDirection.addInPlace(cameraForward.scale(-1)); // Назад
-    if (axis.a) moveDirection.addInPlace(cameraRight); // Влево 🔥 ИСПРАВЛЕНО
-    if (axis.d) moveDirection.addInPlace(cameraRight.scale(-1)); // Вправо 🔥 ИСПРАВЛЕНО
+    if (axis.w) moveDirection.addInPlace(cameraForward);
+    if (axis.s) moveDirection.addInPlace(cameraForward.scale(-1));
+    if (axis.a) moveDirection.addInPlace(cameraRight);
+    if (axis.d) moveDirection.addInPlace(cameraRight.scale(-1));
 
     moveDirection.normalize();
     const targetVelocity = moveDirection.scale(speed);
@@ -189,7 +158,7 @@ function catBeforeRenderObservable(params = {}) {
       currentVelocity
     );
 
-    // Автоматический поворот
+    // 🔥 АВТОМАТИЧЕСКИЙ ПОВОРОТ МЕША (не контейнера!)
     if (moveDirection.length() > 0.1) {
       const targetRotation = B.Quaternion.FromLookDirectionLH(
         moveDirection,
@@ -213,13 +182,8 @@ function catBeforeRenderObservable(params = {}) {
     );
   }
 
-  meshes.position.addInPlace(currentVelocity.scale(deltaTime));
-  state.prevAxisState = {
-    w: axis.w,
-    a: axis.a,
-    s: axis.s,
-    d: axis.d,
-  };
+  // 🔥 ДВИГАЕМ КОНТЕЙНЕР (а с ним автоматически двигаются камера и кот)
+  catContainer.position.addInPlace(currentVelocity.scale(deltaTime));
 
   if (isMoving) {
     setAnimation("walk", ["idle"], animations);
@@ -229,7 +193,7 @@ function catBeforeRenderObservable(params = {}) {
 }
 
 // ✨
-// Остальные функции без изменений
+// Функции направления камеры остаются без изменений
 function getCameraForwardDirection(camera) {
   const forward = camera.getForwardRay().direction;
   return new B.Vector3(forward.x, 0, forward.z).normalize();
@@ -238,6 +202,5 @@ function getCameraForwardDirection(camera) {
 // ✨
 function getCameraRightDirection(camera) {
   const forward = getCameraForwardDirection(camera);
-  const right = B.Vector3.Cross(forward, B.Vector3.Up());
-  return right.normalize();
+  return B.Vector3.Cross(forward, B.Vector3.Up()).normalize();
 }
