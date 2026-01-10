@@ -1,13 +1,12 @@
-import * as B from "@babylonjs/core";
+import * as BABYLON from "@babylonjs/core";
 import { setAnimation } from "./utils.js";
 
-// ✨
 export async function loadCat(scene, shadows, pressedKeys) {
   try {
-    const container = await B.LoadAssetContainerAsync("./cat.glb", scene);
+    const container = await BABYLON.LoadAssetContainerAsync("./cat.glb", scene);
     const [meshes] = container.meshes;
 
-    const catContainer = new B.TransformNode("catContainer", scene);
+    const catContainer = new BABYLON.TransformNode("catContainer", scene);
     meshes.parent = catContainer;
 
     const animations = getAnimationGroups(container, ["walk", "idle"]);
@@ -19,7 +18,7 @@ export async function loadCat(scene, shadows, pressedKeys) {
     const camera = createCatCamera(scene);
     camera.parent = catContainer;
 
-    const currentVelocity = B.Vector3.Zero();
+    const currentVelocity = BABYLON.Vector3.Zero();
 
     const catObservableParams = {
       catContainer, // 🔥 Теперь двигаем контейнер
@@ -62,7 +61,7 @@ async function setRoughnessMaterial(meshes) {
   meshes.getChildMeshes().forEach((mesh) => {
     mesh.receiveShadows = true;
     if (mesh.material) {
-      mesh.material.specularColor = B.Color3.Black();
+      mesh.material.specularColor = BABYLON.Color3.Black();
       mesh.material.roughness = 1.0;
       mesh.material.metallic = 0.0;
     }
@@ -83,20 +82,20 @@ function getAnimationGroups(container, animations) {
 function createCatCamera(scene) {
   // 🔥 КАМЕРА СОЗДАЕТСЯ С НУЛЕВОЙ ПОЗИЦИЕЙ
 
-  const camera = new B.ArcRotateCamera(
+  const camera = new BABYLON.ArcRotateCamera(
     "cameraCat",
     -Math.PI / 2, // Альфа (горизонтальный угол)
     Math.PI / 2 - 0.3, // Бета (вертикальный угол)
     15, // Радиус (расстояние от цели)
-    B.Vector3.Zero(), // Цель в локальных координатах контейнера
+    BABYLON.Vector3.Zero(), // Цель в локальных координатах контейнера
     scene
   );
 
   // 🔥 НАСТРАИВАЕМ ЛОКАЛЬНУЮ ПОЗИЦИЮ КАМЕРЫ ОТНОСИТЕЛЬНО КОНТЕЙНЕРА
   // Камера сзади и сверху от кота
-  camera.position = new B.Vector3(0, 4.7, -15);
+  camera.position = new BABYLON.Vector3(0, 4.7, -15);
   // 🔥 ЦЕЛЬ КАМЕРЫ - В ЛОКАЛЬНЫХ КООРДИНАТАХ (смотрит на центр контейнера)
-  camera.setTarget(new B.Vector3(0, 4.7, 0));
+  camera.setTarget(new BABYLON.Vector3(0, 4.7, 0));
 
   // Настройки камеры
   camera.lowerRadiusLimit = 5;
@@ -146,7 +145,7 @@ function catBeforeRenderObservable(params = {}) {
     const cameraForward = getCameraForwardDirection(camera);
     const cameraRight = getCameraRightDirection(camera);
 
-    let moveDirection = B.Vector3.Zero();
+    let moveDirection = BABYLON.Vector3.Zero();
 
     if (pressedKeys.KeyW) moveDirection.addInPlace(cameraForward);
     if (pressedKeys.KeyS) moveDirection.addInPlace(cameraForward.scale(-1));
@@ -156,7 +155,7 @@ function catBeforeRenderObservable(params = {}) {
     moveDirection.normalize();
     const targetVelocity = moveDirection.scale(speed);
 
-    B.Vector3.LerpToRef(
+    BABYLON.Vector3.LerpToRef(
       currentVelocity,
       targetVelocity,
       acceleration * deltaTime,
@@ -165,12 +164,12 @@ function catBeforeRenderObservable(params = {}) {
 
     // 🔥 АВТОМАТИЧЕСКИЙ ПОВОРОТ МЕША (не контейнера!)
     if (moveDirection.length() > 0.1) {
-      const targetRotation = B.Quaternion.FromLookDirectionLH(
+      const targetRotation = BABYLON.Quaternion.FromLookDirectionLH(
         moveDirection,
-        B.Axis.Y
+        BABYLON.Axis.Y
       );
 
-      B.Quaternion.SlerpToRef(
+      BABYLON.Quaternion.SlerpToRef(
         meshes.rotationQuaternion,
         targetRotation,
         10 * deltaTime,
@@ -179,9 +178,9 @@ function catBeforeRenderObservable(params = {}) {
     }
   } else {
     isMoving = false;
-    B.Vector3.LerpToRef(
+    BABYLON.Vector3.LerpToRef(
       currentVelocity,
-      B.Vector3.Zero(),
+      BABYLON.Vector3.Zero(),
       acceleration * deltaTime,
       currentVelocity
     );
@@ -201,11 +200,11 @@ function catBeforeRenderObservable(params = {}) {
 // Функции направления камеры остаются без изменений
 function getCameraForwardDirection(camera) {
   const forward = camera.getForwardRay().direction;
-  return new B.Vector3(forward.x, 0, forward.z).normalize();
+  return new BABYLON.Vector3(forward.x, 0, forward.z).normalize();
 }
 
 // ✨
 function getCameraRightDirection(camera) {
   const forward = getCameraForwardDirection(camera);
-  return B.Vector3.Cross(forward, B.Vector3.Up()).normalize();
+  return BABYLON.Vector3.Cross(forward, BABYLON.Vector3.Up()).normalize();
 }
