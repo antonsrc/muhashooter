@@ -2,7 +2,7 @@ import * as B from "@babylonjs/core";
 import { setAnimation } from "./utils.js";
 
 // ✨
-export async function loadCat(scene, shadows, axis) {
+export async function loadCat(scene, shadows, pressedKeys) {
   try {
     const container = await B.LoadAssetContainerAsync("./cat.glb", scene);
     const [meshes] = container.meshes;
@@ -26,11 +26,11 @@ export async function loadCat(scene, shadows, axis) {
       meshes, // 🔥 Для поворота меша
       scene,
       speed: 8,
-      axis,
       currentVelocity,
       acceleration: 20,
       animations,
       camera,
+      pressedKeys,
     };
 
     // 🔁
@@ -124,18 +124,23 @@ function catBeforeRenderObservable(params = {}) {
     meshes, // 🔥 Поворачиваем только меш кота
     scene,
     speed,
-    axis,
     currentVelocity,
     acceleration,
     animations,
     camera,
+    pressedKeys,
   } = params;
 
   const deltaTime = (scene.deltaTime ?? 1) / 1000;
   let isMoving = false;
 
   // Движение относительно камеры
-  if (axis.w || axis.a || axis.s || axis.d) {
+  if (
+    pressedKeys.KeyW ||
+    pressedKeys.KeyA ||
+    pressedKeys.KeyS ||
+    pressedKeys.KeyD
+  ) {
     isMoving = true;
 
     const cameraForward = getCameraForwardDirection(camera);
@@ -143,10 +148,10 @@ function catBeforeRenderObservable(params = {}) {
 
     let moveDirection = B.Vector3.Zero();
 
-    if (axis.w) moveDirection.addInPlace(cameraForward);
-    if (axis.s) moveDirection.addInPlace(cameraForward.scale(-1));
-    if (axis.a) moveDirection.addInPlace(cameraRight);
-    if (axis.d) moveDirection.addInPlace(cameraRight.scale(-1));
+    if (pressedKeys.KeyW) moveDirection.addInPlace(cameraForward);
+    if (pressedKeys.KeyS) moveDirection.addInPlace(cameraForward.scale(-1));
+    if (pressedKeys.KeyA) moveDirection.addInPlace(cameraRight);
+    if (pressedKeys.KeyD) moveDirection.addInPlace(cameraRight.scale(-1));
 
     moveDirection.normalize();
     const targetVelocity = moveDirection.scale(speed);

@@ -14,12 +14,7 @@ import { createLight } from "./light.js";
 import { createShadows } from "./shadows.js";
 import { createGround } from "./ground.js";
 
-const axis = {
-  w: 0,
-  a: 0,
-  s: 0,
-  d: 0,
-};
+const pressedKeys = {};
 
 const ground = {
   size: 2000,
@@ -32,7 +27,7 @@ async function init() {
   const engine = new BABYLON.Engine(canvas, false, { stencil: false }, true);
   const scene = new BABYLON.Scene(engine);
   initEventListeners(engine);
-  initKeyboardObservable(scene, axis, canvas);
+  initKeyboardObservable(scene, canvas, pressedKeys);
 
   const light = createLight(scene);
 
@@ -40,7 +35,7 @@ async function init() {
 
   createGround(scene, { size: ground.size });
 
-  const cat = await loadCat(scene, shadows, axis);
+  const cat = await loadCat(scene, shadows, pressedKeys);
   cat.addAllToScene();
 
   const cubes = await loadCubes(scene, shadows);
