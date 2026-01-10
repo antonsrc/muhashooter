@@ -4,7 +4,7 @@ import "@babylonjs/inspector";
 
 import "./styles.css";
 
-import { initKeyboardObservable } from "./inputManager.js";
+import { initInputDevices } from "./inputManager.js";
 
 import { loadCat } from "./cat.js";
 import { loadCubes } from "./cubes.js";
@@ -26,11 +26,11 @@ async function init() {
   const canvas = document.getElementById("renderCanvas");
   const engine = new BABYLON.Engine(canvas, false, { stencil: false }, true);
   const scene = new BABYLON.Scene(engine);
+  
   initEventListeners(engine);
-  initKeyboardObservable(scene, canvas, pressedKeys);
+  initInputDevices(scene, canvas, pressedKeys);
 
   const light = createLight(scene);
-
   const shadows = createShadows(light);
 
   createGround(scene, { size: ground.size });
