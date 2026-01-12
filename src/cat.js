@@ -6,8 +6,11 @@ export async function loadCat(scene, shadows, pressedKeys) {
     const container = await BABYLON.LoadAssetContainerAsync("./cat.glb", scene);
     const [meshes] = container.meshes;
 
-    const catContainer = new BABYLON.TransformNode("catContainer", scene);
-    meshes.parent = catContainer;
+    const rootContainer = new BABYLON.TransformNode("rootContainer", scene);
+    meshes.parent = rootContainer;
+
+    const camera = createCatCamera(scene);
+    camera.parent = rootContainer;
 
     const animations = getAnimationGroups(container, ["walk", "idle"]);
     await setAnimation("idle", ["walk"], animations);
@@ -15,13 +18,10 @@ export async function loadCat(scene, shadows, pressedKeys) {
     await setRoughnessMaterial(meshes);
     await setShadows(meshes, shadows);
 
-    const camera = createCatCamera(scene);
-    camera.parent = catContainer;
-
     const currentVelocity = BABYLON.Vector3.Zero();
 
     const catObservableParams = {
-      catContainer, // 🔥 Теперь двигаем контейнер
+      rootContainer, // 🔥 Теперь двигаем контейнер
       meshes, // 🔥 Для поворота меша
       scene,
       speed: 8,
@@ -77,8 +77,6 @@ function getAnimationGroups(container, animations) {
   return groups;
 }
 
-// ✨
-// 🔥 ПЕРЕРАБОТАННАЯ КАМЕРА: камера как дочерний объект контейнера
 function createCatCamera(scene) {
   // 🔥 КАМЕРА СОЗДАЕТСЯ С НУЛЕВОЙ ПОЗИЦИЕЙ
 
@@ -93,11 +91,9 @@ function createCatCamera(scene) {
 
   // 🔥 НАСТРАИВАЕМ ЛОКАЛЬНУЮ ПОЗИЦИЮ КАМЕРЫ ОТНОСИТЕЛЬНО КОНТЕЙНЕРА
   // Камера сзади и сверху от кота
-  camera.position = new BABYLON.Vector3(0, 4.7, -15);
-  // 🔥 ЦЕЛЬ КАМЕРЫ - В ЛОКАЛЬНЫХ КООРДИНАТАХ (смотрит на центр контейнера)
+  camera.setPosition(new BABYLON.Vector3(0, 4.7, -15));
   camera.setTarget(new BABYLON.Vector3(0, 4.7, 0));
 
-  // Настройки камеры
   camera.lowerRadiusLimit = 5;
   camera.upperRadiusLimit = 30;
   camera.lowerBetaLimit = 0.1;
@@ -109,9 +105,6 @@ function createCatCamera(scene) {
 
   const canvas = scene.getEngine().getRenderingCanvas();
   camera.attachControl(canvas, true);
-
-  // 🔥 УБИРАЕМ РУЧНОЕ ОБНОВЛЕНИЕ КАМЕРЫ - теперь она автоматически следует за контейнером
-
   return camera;
 }
 
@@ -119,7 +112,7 @@ function createCatCamera(scene) {
 // 🔥 ОБНОВЛЕННАЯ ФУНКЦИЯ ДВИЖЕНИЯ: двигаем контейнер, поворачиваем меш
 function catBeforeRenderObservable(params = {}) {
   const {
-    catContainer, // 🔥 Двигаем контейнер (а с ним и камеру, и кота)
+    rootContainer, // 🔥 Двигаем контейнер (а с ним и камеру, и кота)
     meshes, // 🔥 Поворачиваем только меш кота
     scene,
     speed,
@@ -187,7 +180,7 @@ function catBeforeRenderObservable(params = {}) {
   }
 
   // 🔥 ДВИГАЕМ КОНТЕЙНЕР (а с ним автоматически двигаются камера и кот)
-  catContainer.position.addInPlace(currentVelocity.scale(deltaTime));
+  rootContainer.position.addInPlace(currentVelocity.scale(deltaTime));
 
   if (isMoving) {
     setAnimation("walk", ["idle"], animations);
