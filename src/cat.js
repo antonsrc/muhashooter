@@ -3,8 +3,11 @@ import { setAnimation } from "./utils.js";
 
 export async function loadCat(scene, shadows, pressedKeys) {
   try {
-    const container = await BABYLON.LoadAssetContainerAsync("./cat.glb", scene);
-    const [meshes] = container.meshes;
+    const catContainer = await BABYLON.LoadAssetContainerAsync(
+      "./cat.glb",
+      scene
+    );
+    const [meshes] = catContainer.meshes;
 
     const rootContainer = new BABYLON.TransformNode("rootContainer", scene);
     meshes.parent = rootContainer;
@@ -12,9 +15,10 @@ export async function loadCat(scene, shadows, pressedKeys) {
     const camera = createCatCamera(scene);
     camera.parent = rootContainer;
 
-    const animations = getAnimationGroups(container, ["walk", "idle"]);
+    const animations = getAnimationGroups(catContainer, ["walk", "idle"]);
+    await setAnimationBlending(catContainer);
     await setAnimation("idle", ["walk"], animations);
-    await setAnimationBlending(container);
+
     await setRoughnessMaterial(meshes);
     await setShadows(meshes, shadows);
 
@@ -37,17 +41,51 @@ export async function loadCat(scene, shadows, pressedKeys) {
       catBeforeRenderObservable(catObservableParams)
     );
 
-    return container;
+    return catContainer;
   } catch (error) {
     console.error("Error loading model:", error);
   }
 }
 
-// ✨
+function createCatCamera(scene) {
+  const camera = new BABYLON.ArcRotateCamera(
+    "cameraCat",
+    -Math.PI / 2,
+    Math.PI / 2 - 0.3,
+    15,
+    BABYLON.Vector3.Zero(),
+    scene
+  );
+
+  camera.setPosition(new BABYLON.Vector3(0, 4.7, -15));
+  camera.setTarget(new BABYLON.Vector3(0, 4.7, 0));
+
+  camera.lowerRadiusLimit = 5;
+  camera.upperRadiusLimit = 30;
+  camera.lowerBetaLimit = 0.1;
+  camera.upperBetaLimit = Math.PI / 2;
+  camera.wheelPrecision = 10;
+  camera.angularSensibilityX = 1000;
+  camera.angularSensibilityY = 1000;
+  camera.inertia = 0.8;
+
+  const canvas = scene.getEngine().getRenderingCanvas();
+  camera.attachControl(canvas, true);
+  return camera;
+}
+
+function getAnimationGroups(container, animations) {
+  const groups = {};
+  animations.forEach((name) => {
+    groups[name] = container.animationGroups.find((g) => g.name === name);
+  });
+  return groups;
+}
+
 async function setAnimationBlending(container) {
   container.animationGroups.forEach((anim) => {
     anim.enableBlending = true;
-    anim.blendingSpeed = 0.4;
+    anim.blendingSpeed = 0.5;
   });
 }
 
@@ -66,46 +104,6 @@ async function setRoughnessMaterial(meshes) {
       mesh.material.metallic = 0.0;
     }
   });
-}
-
-// ✨
-function getAnimationGroups(container, animations) {
-  const groups = {};
-  animations.forEach((name) => {
-    groups[name] = container.animationGroups.find((g) => g.name === name);
-  });
-  return groups;
-}
-
-function createCatCamera(scene) {
-  // 🔥 КАМЕРА СОЗДАЕТСЯ С НУЛЕВОЙ ПОЗИЦИЕЙ
-
-  const camera = new BABYLON.ArcRotateCamera(
-    "cameraCat",
-    -Math.PI / 2, // Альфа (горизонтальный угол)
-    Math.PI / 2 - 0.3, // Бета (вертикальный угол)
-    15, // Радиус (расстояние от цели)
-    BABYLON.Vector3.Zero(), // Цель в локальных координатах контейнера
-    scene
-  );
-
-  // 🔥 НАСТРАИВАЕМ ЛОКАЛЬНУЮ ПОЗИЦИЮ КАМЕРЫ ОТНОСИТЕЛЬНО КОНТЕЙНЕРА
-  // Камера сзади и сверху от кота
-  camera.setPosition(new BABYLON.Vector3(0, 4.7, -15));
-  camera.setTarget(new BABYLON.Vector3(0, 4.7, 0));
-
-  camera.lowerRadiusLimit = 5;
-  camera.upperRadiusLimit = 30;
-  camera.lowerBetaLimit = 0.1;
-  camera.upperBetaLimit = Math.PI / 2;
-  camera.wheelPrecision = 10;
-  camera.angularSensibilityX = 1000;
-  camera.angularSensibilityY = 1000;
-  camera.inertia = 0.8;
-
-  const canvas = scene.getEngine().getRenderingCanvas();
-  camera.attachControl(canvas, true);
-  return camera;
 }
 
 // ✨🔁
