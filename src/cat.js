@@ -85,7 +85,7 @@ function getAnimationGroups(container, animations) {
 async function setAnimationBlending(container) {
   container.animationGroups.forEach((anim) => {
     anim.enableBlending = true;
-    anim.blendingSpeed = 0.5;
+    anim.blendingSpeed = 0.1;
   });
 }
 
