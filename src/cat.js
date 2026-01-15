@@ -1,5 +1,10 @@
 import * as BABYLON from "@babylonjs/core";
-import { setAnimation } from "./utils.js";
+import {
+  setAnimation,
+  setAnimationBlending,
+  getAnimationGroups,
+  setRoughnessMaterial,
+} from "./utils.js";
 
 export async function loadCat(scene, shadows, pressedKeys) {
   try {
@@ -8,7 +13,6 @@ export async function loadCat(scene, shadows, pressedKeys) {
       scene
     );
     const [meshes] = catContainer.meshes;
-
     const rootContainer = new BABYLON.TransformNode("rootContainer", scene);
     meshes.parent = rootContainer;
 
@@ -20,13 +24,12 @@ export async function loadCat(scene, shadows, pressedKeys) {
     await setAnimation("idle", ["walk"], animations);
 
     await setRoughnessMaterial(meshes);
-    await setShadows(meshes, shadows);
+    shadows.addShadowCaster(meshes);
 
     const currentVelocity = BABYLON.Vector3.Zero();
 
     const catObservableParams = {
-      rootContainer, // 🔥 Теперь двигаем контейнер
-      meshes, // 🔥 Для поворота меша
+      meshes,
       scene,
       speed: 8,
       currentVelocity,
@@ -74,44 +77,11 @@ function createCatCamera(scene) {
   return camera;
 }
 
-function getAnimationGroups(container, animations) {
-  const groups = {};
-  animations.forEach((name) => {
-    groups[name] = container.animationGroups.find((g) => g.name === name);
-  });
-  return groups;
-}
-
-async function setAnimationBlending(container) {
-  container.animationGroups.forEach((anim) => {
-    anim.enableBlending = true;
-    anim.blendingSpeed = 0.1;
-  });
-}
-
-// ✨
-async function setShadows(meshes, shadows) {
-  shadows.addShadowCaster(meshes);
-}
-
-// ✨
-async function setRoughnessMaterial(meshes) {
-  meshes.getChildMeshes().forEach((mesh) => {
-    mesh.receiveShadows = true;
-    if (mesh.material) {
-      mesh.material.specularColor = BABYLON.Color3.Black();
-      mesh.material.roughness = 1.0;
-      mesh.material.metallic = 0.0;
-    }
-  });
-}
-
 // ✨🔁
 // 🔥 ОБНОВЛЕННАЯ ФУНКЦИЯ ДВИЖЕНИЯ: двигаем контейнер, поворачиваем меш
 function catBeforeRenderObservable(params = {}) {
   const {
-    rootContainer, // 🔥 Двигаем контейнер (а с ним и камеру, и кота)
-    meshes, // 🔥 Поворачиваем только меш кота
+    meshes,
     scene,
     speed,
     currentVelocity,
@@ -122,6 +92,7 @@ function catBeforeRenderObservable(params = {}) {
   } = params;
 
   const deltaTime = (scene.deltaTime ?? 1) / 1000;
+  console.log(scene.deltaTime, deltaTime)
   let isMoving = false;
 
   // Движение относительно камеры
@@ -178,7 +149,7 @@ function catBeforeRenderObservable(params = {}) {
   }
 
   // 🔥 ДВИГАЕМ КОНТЕЙНЕР (а с ним автоматически двигаются камера и кот)
-  rootContainer.position.addInPlace(currentVelocity.scale(deltaTime));
+  meshes.parent.position.addInPlace(currentVelocity.scale(deltaTime));
 
   if (isMoving) {
     setAnimation("walk", ["idle"], animations);
