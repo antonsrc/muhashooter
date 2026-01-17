@@ -26,20 +26,20 @@ export async function loadCat(scene, shadows, pressedKeys) {
     await setRoughnessMaterial(meshes);
     shadows.addShadowCaster(meshes);
 
-    const currentVelocity = BABYLON.Vector3.Zero();
+    if (!meshes.rotationQuaternion) {
+      meshes.rotationQuaternion = BABYLON.Quaternion.Zero();
+    }
 
     const catObservableParams = {
       meshes,
       scene,
       speed: 8,
-      currentVelocity,
-      acceleration: 20,
+      acceleration: 40,
       animations,
       camera,
       pressedKeys,
     };
 
-    // 🔁
     scene.onBeforeRenderObservable.add(() =>
       catBeforeRenderObservable(catObservableParams)
     );
@@ -77,14 +77,11 @@ function createCatCamera(scene) {
   return camera;
 }
 
-// ✨🔁
-// 🔥 ОБНОВЛЕННАЯ ФУНКЦИЯ ДВИЖЕНИЯ: двигаем контейнер, поворачиваем меш
 function catBeforeRenderObservable(params = {}) {
   const {
     meshes,
     scene,
     speed,
-    currentVelocity,
     acceleration,
     animations,
     camera,
@@ -92,10 +89,10 @@ function catBeforeRenderObservable(params = {}) {
   } = params;
 
   const deltaTime = (scene.deltaTime ?? 1) / 1000;
-  console.log(scene.deltaTime, deltaTime)
-  let isMoving = false;
 
-  // Движение относительно камеры
+  let isMoving = false;
+  let resultVelocity = BABYLON.Vector3.Zero();
+
   if (
     pressedKeys.KeyW ||
     pressedKeys.KeyA ||
@@ -108,23 +105,29 @@ function catBeforeRenderObservable(params = {}) {
     const cameraRight = getCameraRightDirection(camera);
 
     let moveDirection = BABYLON.Vector3.Zero();
-
-    if (pressedKeys.KeyW) moveDirection.addInPlace(cameraForward);
-    if (pressedKeys.KeyS) moveDirection.addInPlace(cameraForward.scale(-1));
-    if (pressedKeys.KeyA) moveDirection.addInPlace(cameraRight);
-    if (pressedKeys.KeyD) moveDirection.addInPlace(cameraRight.scale(-1));
+    if (pressedKeys.KeyW) {
+      moveDirection.addInPlace(cameraForward);
+    }
+    if (pressedKeys.KeyS) {
+      moveDirection.addInPlace(cameraForward.scale(-1));
+    }
+    if (pressedKeys.KeyD) {
+      moveDirection.addInPlace(cameraRight);
+    }
+    if (pressedKeys.KeyA) {
+      moveDirection.addInPlace(cameraRight.scale(-1));
+    }
 
     moveDirection.normalize();
     const targetVelocity = moveDirection.scale(speed);
 
     BABYLON.Vector3.LerpToRef(
-      currentVelocity,
+      BABYLON.Vector3.Zero(),
       targetVelocity,
       acceleration * deltaTime,
-      currentVelocity
+      resultVelocity
     );
 
-    // 🔥 АВТОМАТИЧЕСКИЙ ПОВОРОТ МЕША (не контейнера!)
     if (moveDirection.length() > 0.1) {
       const targetRotation = BABYLON.Quaternion.FromLookDirectionLH(
         moveDirection,
@@ -137,19 +140,14 @@ function catBeforeRenderObservable(params = {}) {
         10 * deltaTime,
         meshes.rotationQuaternion
       );
+    } else {
+      isMoving = false;
     }
   } else {
     isMoving = false;
-    BABYLON.Vector3.LerpToRef(
-      currentVelocity,
-      BABYLON.Vector3.Zero(),
-      acceleration * deltaTime,
-      currentVelocity
-    );
   }
 
-  // 🔥 ДВИГАЕМ КОНТЕЙНЕР (а с ним автоматически двигаются камера и кот)
-  meshes.parent.position.addInPlace(currentVelocity.scale(deltaTime));
+  meshes.parent.position.addInPlace(resultVelocity.scale(deltaTime));
 
   if (isMoving) {
     setAnimation("walk", ["idle"], animations);
@@ -158,15 +156,12 @@ function catBeforeRenderObservable(params = {}) {
   }
 }
 
-// ✨
-// Функции направления камеры остаются без изменений
 function getCameraForwardDirection(camera) {
   const forward = camera.getForwardRay().direction;
   return new BABYLON.Vector3(forward.x, 0, forward.z).normalize();
 }
 
-// ✨
 function getCameraRightDirection(camera) {
   const forward = getCameraForwardDirection(camera);
-  return BABYLON.Vector3.Cross(forward, BABYLON.Vector3.Up()).normalize();
+  return BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), forward).normalize();
 }

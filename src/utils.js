@@ -17,7 +17,7 @@ export async function setAnimation(playAnim, stopAnims, animations) {
 export async function setAnimationBlending(container) {
   container.animationGroups.forEach((anim) => {
     anim.enableBlending = true;
-    anim.blendingSpeed = 0.1;
+    anim.blendingSpeed = 0.3;
   });
 }
 
