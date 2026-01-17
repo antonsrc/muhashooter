@@ -1,6 +1,6 @@
 {
   "name": "bfps",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "game",
   "main": "index.js",
   "scripts": {
