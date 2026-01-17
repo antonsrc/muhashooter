@@ -19,9 +19,13 @@ export async function loadCat(scene, shadows, pressedKeys) {
     const camera = createCatCamera(scene);
     camera.parent = rootContainer;
 
-    const animations = getAnimationGroups(catContainer, ["walk", "idle"]);
+    const animations = getAnimationGroups(catContainer, [
+      "walk",
+      "idle",
+      "run",
+    ]);
     await setAnimationBlending(catContainer);
-    await setAnimation("idle", ["walk"], animations);
+    await setAnimation("idle", ["walk", "run"], animations);
 
     await setRoughnessMaterial(meshes);
     shadows.addShadowCaster(meshes);
@@ -33,7 +37,7 @@ export async function loadCat(scene, shadows, pressedKeys) {
     const catObservableParams = {
       meshes,
       scene,
-      speed: 8,
+      speed: 12,
       acceleration: 40,
       animations,
       camera,
@@ -78,19 +82,13 @@ function createCatCamera(scene) {
 }
 
 function catBeforeRenderObservable(params = {}) {
-  const {
-    meshes,
-    scene,
-    speed,
-    acceleration,
-    animations,
-    camera,
-    pressedKeys,
-  } = params;
+  let { meshes, scene, speed, acceleration, animations, camera, pressedKeys } =
+    params;
 
   const deltaTime = (scene.deltaTime ?? 1) / 1000;
 
   let isMoving = false;
+  let isRun = false;
   let resultVelocity = BABYLON.Vector3.Zero();
 
   if (
@@ -119,6 +117,13 @@ function catBeforeRenderObservable(params = {}) {
     }
 
     moveDirection.normalize();
+
+    if (pressedKeys.ShiftLeft) {
+      speed = speed * 3;
+      isRun = true;
+    } else {
+      isRun = false;
+    }
     const targetVelocity = moveDirection.scale(speed);
 
     BABYLON.Vector3.LerpToRef(
@@ -149,10 +154,12 @@ function catBeforeRenderObservable(params = {}) {
 
   meshes.parent.position.addInPlace(resultVelocity.scale(deltaTime));
 
-  if (isMoving) {
-    setAnimation("walk", ["idle"], animations);
+  if (isRun) {
+    setAnimation("run", ["idle", "walk"], animations);
+  } else if (isMoving) {
+    setAnimation("walk", ["idle", "run"], animations);
   } else {
-    setAnimation("idle", ["walk"], animations);
+    setAnimation("idle", ["walk", "run"], animations);
   }
 }
 
