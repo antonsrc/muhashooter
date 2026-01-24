@@ -17,4 +17,11 @@ export function createGround(scene, options = {}) {
   material.metallic = 0.0;
   ground.receiveShadows = true;
   ground.material = material;
+
+  new BABYLON.PhysicsAggregate(
+    ground,
+    BABYLON.PhysicsShapeType.BOX,
+    { mass: 0 },
+    scene
+  );
 }

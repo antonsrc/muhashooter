@@ -9,6 +9,7 @@ export function initInputDevices(scene, canvas, pressedKeys) {
 
   scene.onKeyboardObservable.add((kbInfo) => {
     const code = kbInfo.event.code;
+    // console.log(code);
     const KEYDOWN = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
     const KEYUP = kbInfo.type === BABYLON.KeyboardEventTypes.KEYUP;
     if (KEYDOWN) {
