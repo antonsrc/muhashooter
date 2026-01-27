@@ -5,13 +5,12 @@ import * as BABYLON from "@babylonjs/core";
  * @param {string[]} stopAnims - ["walk", "run"]
  * @param {object} animations - object of AnimationGroup
  */
-export async function setAnimation(playAnim, stopAnims, animations) {
+export async function setAnimation(playAnim, stopAnims, animations, loop = true) {
   if (animations[playAnim].isPlaying) {
     return;
-  } else {
-    stopAnims.forEach((a) => animations[a].stop());
-    animations[playAnim].start(true);
   }
+  animations[playAnim].start(loop);
+  stopAnims.forEach((a) => animations[a].stop());
 }
 
 export async function setAnimationBlending(container) {

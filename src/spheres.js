@@ -19,14 +19,14 @@ export async function createSpheres(scene, shadows) {
     shadows.addShadowCaster(sphere);
     sphere.position.set(
       -10 + Math.random() * 10,
-      1 + Math.random() * 10,
+      2 + Math.random() * 10,
       15 + Math.random() * 10
     );
 
     new BABYLON.PhysicsAggregate(
       sphere,
       BABYLON.PhysicsShapeType.SPHERE,
-      { mass: 0.1, restitution: 0.9 },
+      { mass: 1, restitution: 0.9 },
       scene
     );
   }
