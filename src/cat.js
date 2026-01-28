@@ -174,16 +174,28 @@ function getNewState(oldState, canMoving, pressedKeys, scene) {
         return listStates.jump;
       }
     case listStates.jump:
-      if (onGround) {
+      if (onGround && !canMoving) {
         return listStates.idle;
+      }
+      if (onGround && canMoving && !pressedKeys.ShiftLeft) {
+        return listStates.walk;
+      }
+      if (onGround && canMoving && pressedKeys.ShiftLeft) {
+        return listStates.run;
       }
       if (!onGround && !scene.getAnimationGroupByName("jump").isPlaying) {
         return listStates.fall;
       }
       return listStates.jump;
     case listStates.fall:
-      if (onGround) {
+      if (onGround && !canMoving) {
         return listStates.idle;
+      }
+      if (onGround && canMoving && !pressedKeys.ShiftLeft) {
+        return listStates.walk;
+      }
+      if (onGround && canMoving && pressedKeys.ShiftLeft) {
+        return listStates.run;
       }
       return listStates.fall;
   }

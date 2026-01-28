@@ -25,7 +25,7 @@ export async function loadCubes(scene, shadowGenerator) {
       new BABYLON.PhysicsAggregate(
         scene.getMeshByName(meshName),
         BABYLON.PhysicsShapeType.BOX,
-        { mass: 0.1 }
+        { mass: 100 }
       );
     });
 
