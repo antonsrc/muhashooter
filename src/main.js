@@ -64,40 +64,52 @@ async function init() {
     scene
   );
 
-
-
-
-for(let i = 0; i<10; i++) {
-
-const box = BABYLON.MeshBuilder.CreateBox(
-    "box"+i,
-    { height: 2, width: 100-i*8, depth: 20 },
-    scene
-  );
-  const material = new BABYLON.StandardMaterial("material", scene);
-  material.diffuseColor = new BABYLON.Color3(0.1, 0.5, 0.2);
-  box.material = material;
-  shadows.addShadowCaster(box);
-  box.position.set(-80, 2+(i*2), 5);
-  new BABYLON.PhysicsAggregate(
-    box,
-    new BABYLON.PhysicsShapeBox(
-      new BABYLON.Vector3(0, 0, 0),
-      new BABYLON.Quaternion(0, 0, 0, 1),
-      new BABYLON.Vector3(100-i*8, 2, 20),
+  for (let i = 0; i < 10; i++) {
+    const box = BABYLON.MeshBuilder.CreateBox(
+      "box" + i,
+      { height: 2, width: 100 - i * 8, depth: 20 },
       scene
-    ),
-    { mass: 300 },
+    );
+    const material = new BABYLON.StandardMaterial("material", scene);
+    material.diffuseColor = new BABYLON.Color3(0.1, 0.5, 0.2);
+    box.material = material;
+    shadows.addShadowCaster(box);
+    box.position.set(-80, 2 + i * 2, 5);
+    new BABYLON.PhysicsAggregate(
+      box,
+      new BABYLON.PhysicsShapeBox(
+        new BABYLON.Vector3(0, 0, 0),
+        new BABYLON.Quaternion(0, 0, 0, 1),
+        new BABYLON.Vector3(100 - i * 8, 2, 20),
+        scene
+      ),
+      { mass: 300 },
+      scene
+    );
+  }
+
+  const treeContainer = await BABYLON.LoadAssetContainerAsync(
+    "./tree.glb",
     scene
   );
-}
+  const [treeMeshes] = treeContainer.meshes;
+  treeMeshes.scaling.setAll(1);
+  treeMeshes.position.x = 0;
+  treeMeshes.position.z = 15;
 
+  treeContainer.meshes.forEach((mesh) => {
+    if (mesh.getTotalVertices()) {
+      new BABYLON.PhysicsAggregate(
+        treeContainer.meshes[1],
+        BABYLON.PhysicsShapeType.MESH,
+        { mass: 1 },
+        scene
+      );
+    }
+  });
 
-
-
-
-
-
+  shadows.addShadowCaster(treeMeshes);
+  treeContainer.addAllToScene();
 
   initEventListeners(engine);
   initInputDevices(scene, canvas, pressedKeys);

@@ -5,15 +5,7 @@ import {
   getAnimationGroups,
 } from "./utils.js";
 
-let inputDirection = BABYLON.Vector3.Zero();
-let onGround = false;
-let upWorld = BABYLON.Vector3.Up();
-let speed = 1;
-let inAirSpeed = 8.0;
-let onGroundSpeed = 10.0;
-let jumpHeight = 12;
-let characterGravity = new BABYLON.Vector3(0, -18, 0);
-
+const upWorld = BABYLON.Vector3.Up();
 const listStates = {
   walk: "walk",
   idle: "idle",
@@ -22,8 +14,16 @@ const listStates = {
   jump: "jump",
   fall: "fall",
 };
-let oldState = listStates.idle;
-let newState = listStates.idle;
+
+const inAirSpeed = 10;
+const onGroundSpeed = 12;
+const jumpHeight = 12;
+let speed = 1;
+
+let inputDirection = BABYLON.Vector3.Zero();
+let onGround = false;
+let characterGravity = new BABYLON.Vector3(0, -18, 0);
+let currentState = listStates.idle;
 
 export async function loadCat(scene, shadows, pressedKeys, camera) {
   const catGlb = await BABYLON.LoadAssetContainerAsync("./cat.glb", scene);
@@ -31,6 +31,8 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
   const rootContainer = new BABYLON.TransformNode("rootContainer", scene);
   meshes.parent = rootContainer;
   camera.parent = rootContainer;
+  shadows.addShadowCaster(meshes);
+  catGlb.addAllToScene();
 
   const animations = getAnimationGroups(catGlb, [
     "walk",
@@ -39,9 +41,6 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
     "jump",
   ]);
   await setAnimationBlending(catGlb);
-
-  shadows.addShadowCaster(meshes);
-  catGlb.addAllToScene();
 
   const catHeight = 6;
   meshes.position.set(0, -catHeight / 2, 0);
@@ -68,12 +67,9 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
       pressedKeys.KeyS ||
       pressedKeys.KeyD;
 
-    newState = getNewState(oldState, canMoving, pressedKeys, scene);
+    currentState = getNewState(currentState, canMoving, pressedKeys, scene);
 
-    if (!canMoving) {
-      inputDirection = BABYLON.Vector3.Zero();
-    }
-
+    
     if (pressedKeys.KeyW) {
       inputDirection.addInPlace(cameraForward);
     }
@@ -103,31 +99,20 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
       );
     }
 
-    let desiredLinearVelocity = getDesiredVelocity(
+    const desiredLinearVelocity = getDesiredVelocity(
       deltaTime,
       catController.getVelocity(),
-      animations
+      animations,
+      currentState
     );
     catController.setVelocity(desiredLinearVelocity);
     catController.integrate(deltaTime, support, characterGravity);
     meshes.parent.position.copyFrom(catController.getPosition());
-
-    console.log(
-      `ground`,
-      onGround,
-      `, move`,
-      canMoving,
-      `| ${oldState} -> ${newState}`,
-      `, y`,
-      desiredLinearVelocity.y
-    );
-
-    oldState = newState; // потом это убрать
   });
 }
 
-function getNewState(oldState, canMoving, pressedKeys, scene) {
-  switch (oldState) {
+function getNewState(currentState, canMoving, pressedKeys, scene) {
+  switch (currentState) {
     case listStates.idle:
       if (onGround && canMoving) {
         return listStates.walk;
@@ -218,8 +203,13 @@ function getState(supportInfo) {
   return false;
 }
 
-function getDesiredVelocity(deltaTime, currentVelocity, animations) {
-  switch (newState) {
+function getDesiredVelocity(
+  deltaTime,
+  currentVelocity,
+  animations,
+  currentState
+) {
+  switch (currentState) {
     case listStates.idle:
       setAnimation("idle", ["walk", "run", "jump"], animations);
       return BABYLON.Vector3.Zero();
