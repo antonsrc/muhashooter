@@ -39,6 +39,7 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
     "idle",
     "run",
     "jump",
+    "fall",
   ]);
   await setAnimationBlending(catGlb);
 
@@ -66,10 +67,10 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
       pressedKeys.KeyA ||
       pressedKeys.KeyS ||
       pressedKeys.KeyD;
-
+    let oldState = currentState;
     currentState = getNewState(currentState, canMoving, pressedKeys, scene);
+    console.log(oldState, "->", currentState);
 
-    
     if (pressedKeys.KeyW) {
       inputDirection.addInPlace(cameraForward);
     }
@@ -211,16 +212,16 @@ function getDesiredVelocity(
 ) {
   switch (currentState) {
     case listStates.idle:
-      setAnimation("idle", ["walk", "run", "jump"], animations);
+      setAnimation("idle", ["walk", "run", "jump", "fall"], animations);
       return BABYLON.Vector3.Zero();
     case listStates.walk:
-      setAnimation("walk", ["idle", "run", "jump"], animations);
+      setAnimation("walk", ["idle", "run", "jump", "fall"], animations);
       return inputDirection.scale(onGroundSpeed * speed);
     case listStates.run:
-      setAnimation("run", ["idle", "walk", "jump"], animations);
+      setAnimation("run", ["idle", "walk", "jump", "fall"], animations);
       return inputDirection.scale(onGroundSpeed * speed);
     case listStates.startJump:
-      setAnimation("jump", ["idle", "run", "walk"], animations, false);
+      setAnimation("jump", ["idle", "run", "walk", "fall"], animations, false);
       return inputDirection
         .scale(inAirSpeed * speed)
         .addInPlace(upWorld.scale(jumpHeight));
@@ -230,6 +231,7 @@ function getDesiredVelocity(
         .addInPlace(upWorld.scale(currentVelocity.dot(upWorld)))
         .addInPlace(characterGravity.scale(deltaTime));
     case listStates.fall:
+      setAnimation("fall", ["idle", "walk", "jump", "run"], animations);
       return inputDirection
         .scale(inAirSpeed * speed)
         .addInPlace(upWorld.scale(currentVelocity.dot(upWorld)))
