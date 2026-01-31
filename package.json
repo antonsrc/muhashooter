@@ -1,23 +1,21 @@
 {
-  "name": "bfps",
+  "name": "muhashooter",
   "version": "0.6.0",
-  "description": "game",
+  "description": "online third person shooter game",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
+  "author": "Moshnyakov Anton Alexeevich",
+  "license": "UNLICENSED",
+  "private": true,
   "devDependencies": {
-    "@babylonjs/core": "^8.46.2",
-    "@babylonjs/gui": "^8.46.2",
-    "@babylonjs/havok": "^1.3.11",
-    "@babylonjs/loaders": "^8.46.2",
-    "@babylonjs/materials": "^8.46.2"
+    "@babylonjs/core": "^8.49.6",
+    "@babylonjs/gui": "^8.49.6",
+    "@babylonjs/loaders": "^8.49.6",
+    "@babylonjs/materials": "^8.49.6",
+    "@babylonjs/havok": "^1.3.11"
   },
   "dependencies": {
-    "@babylonjs/inspector": "^8.46.2",
-    "css-loader": "^7.1.2",
+    "@babylonjs/inspector": "^8.49.6",
+    "css-loader": "^7.1.3",
     "mini-css-extract-plugin": "^2.10.0",
     "style-loader": "^4.0.0",
     "webpack": "^5.104.1",

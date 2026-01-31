@@ -42,7 +42,6 @@ export async function loadTrees(scene, shadows, groundSize) {
       instance.material.freeze();
       instance.alwaysSelectAsActiveMesh = true;
 
-      console.log(instance);
       if (instance.getTotalVertices()) {
         new BABYLON.PhysicsAggregate(instance, BABYLON.PhysicsShapeType.BOX, {
           mass: 0,
