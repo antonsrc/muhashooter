@@ -22,7 +22,7 @@ export async function loadTrees(scene, shadows, groundSize) {
 
     shadows.addShadowCaster(merged);
 
-    const COUNT = 2_000;
+    const COUNT = 1_300;
     const offset = 10;
     const max = groundSize / 2 - 2 - offset;
 
@@ -36,10 +36,20 @@ export async function loadTrees(scene, shadows, groundSize) {
 
       instance.position.set(x, 0, z);
       instance.rotate(treeMeshes.up, BABYLON.Scalar.RandomRange(1, 180));
-      instance.scaling.setAll(BABYLON.Scalar.RandomRange(0.5, 2));
+      const scale = BABYLON.Scalar.RandomRange(0.5, 2);
+      instance.scaling.setAll(scale);
       instance.freezeWorldMatrix();
       instance.material.freeze();
       instance.alwaysSelectAsActiveMesh = true;
+
+      console.log(instance);
+      if (instance.getTotalVertices()) {
+        new BABYLON.PhysicsAggregate(instance, BABYLON.PhysicsShapeType.BOX, {
+          mass: 0,
+          extents: new BABYLON.Vector3(1 * scale, 20 * scale, 1 * scale),
+        });
+      }
+
       shadows.addShadowCaster(instance);
     }
 

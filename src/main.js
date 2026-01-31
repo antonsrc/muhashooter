@@ -20,7 +20,7 @@ import { createSpheres } from "./spheres.js";
 const pressedKeys = {};
 
 const ground = {
-  size: 2000,
+  size: 1000,
 };
 
 init().catch(console.error);
@@ -42,32 +42,10 @@ async function init() {
 
   createGround(scene, { size: ground.size });
 
-  const box = BABYLON.MeshBuilder.CreateBox(
-    "box",
-    { height: 3, width: 30, depth: 20 },
-    scene
-  );
-  const material = new BABYLON.StandardMaterial("material", scene);
-  material.diffuseColor = new BABYLON.Color3(0.5, 1, 0.2);
-  box.material = material;
-  shadows.addShadowCaster(box);
-  box.position.set(-20, 2, 40);
-  new BABYLON.PhysicsAggregate(
-    box,
-    new BABYLON.PhysicsShapeBox(
-      new BABYLON.Vector3(0, 0, 0),
-      new BABYLON.Quaternion(0, 0, 0, 1),
-      new BABYLON.Vector3(30, 3, 20),
-      scene
-    ),
-    { mass: 100 },
-    scene
-  );
-
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 8; i++) {
     const box = BABYLON.MeshBuilder.CreateBox(
       "box" + i,
-      { height: 2, width: 100 - i * 8, depth: 20 },
+      { height: 2, width: 70 - i * 8, depth: 20 },
       scene
     );
     const material = new BABYLON.StandardMaterial("material", scene);
@@ -80,10 +58,10 @@ async function init() {
       new BABYLON.PhysicsShapeBox(
         new BABYLON.Vector3(0, 0, 0),
         new BABYLON.Quaternion(0, 0, 0, 1),
-        new BABYLON.Vector3(100 - i * 8, 2, 20),
+        new BABYLON.Vector3(70 - i * 8, 2, 20),
         scene
       ),
-      { mass: 300 },
+      { mass: 0 },
       scene
     );
   }
@@ -100,7 +78,7 @@ async function init() {
   treeContainer.meshes.forEach((mesh) => {
     if (mesh.getTotalVertices()) {
       new BABYLON.PhysicsAggregate(
-        treeContainer.meshes[1],
+        mesh,
         BABYLON.PhysicsShapeType.MESH,
         { mass: 1 },
         scene
@@ -119,8 +97,8 @@ async function init() {
   await loadCubes(scene, shadows);
   await createSpheres(scene, shadows);
 
-  // const trees = await loadTrees(scene, shadows, ground.size);
-  // trees.addAllToScene();
+  const trees = await loadTrees(scene, shadows, ground.size);
+  trees.addAllToScene();
 
   engine.runRenderLoop(() => scene.render());
 }
