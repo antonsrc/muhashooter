@@ -27,6 +27,18 @@ export async function loadCubes(scene, shadowGenerator) {
         BABYLON.PhysicsShapeType.BOX,
         { mass: 100 }
       );
+
+      // new BABYLON.PhysicsAggregate(
+      //   box,
+      //   new BABYLON.PhysicsShapeBox(
+      //     new BABYLON.Vector3(0, 0, 0),
+      //     new BABYLON.Quaternion(0, 0, 0, 1),
+      //     new BABYLON.Vector3(70, 2, 20),
+      //     scene
+      //   ),
+      //   { mass: 0 },
+      //   scene
+      // );
     });
 
     return container;

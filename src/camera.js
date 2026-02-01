@@ -11,8 +11,6 @@ export function createCamera(scene) {
   );
 
   camera.setPosition(new BABYLON.Vector3(0, 4.7, -15));
-  camera.setTarget(new BABYLON.Vector3(0, 4.7, 0));
-
   camera.lowerRadiusLimit = 5;
   camera.upperRadiusLimit = 30;
   camera.lowerBetaLimit = 0.1;
@@ -21,6 +19,7 @@ export function createCamera(scene) {
   camera.angularSensibilityX = 1000;
   camera.angularSensibilityY = 1000;
   camera.inertia = 0.8;
+  camera.setTarget(BABYLON.Vector3.Zero());
 
   const canvas = scene.getEngine().getRenderingCanvas();
   camera.attachControl(canvas, true);
