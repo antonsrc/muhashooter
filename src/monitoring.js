@@ -47,11 +47,13 @@ export function createMonitoring(scene, engine) {
   const fpsValue = addTextBlock(panel, { fontWeight: "bold", fontSize: "3%" });
 
   scene.registerAfterRender(() => {
+    let frameCounter = 0;
+ if (frameCounter++ % 40 === 0) {
     meshesLength.text = "Meshes: " + scene.meshes.length;
     activeMeshesLength.text =
       "Active Meshes: " + scene.getActiveMeshes().length;
-    activeVertices.text = `Total Vertices: ${scene.totalVerticesPerfCounter.current.toLocaleString()}`;
-    activeIndices.text = `Active Indices: ${scene.totalActiveIndicesPerfCounter.current.toLocaleString()}`;
+    activeVertices.text = `Total Vertices: ${scene.totalVerticesPerfCounter.current.toString()}`;
+    activeIndices.text = `Active Indices: ${scene.totalActiveIndicesPerfCounter.current.toString()}`;
     materialsLength.text = "Materials: " + scene.materials.length;
     texturesLength.text = "Textures: " + scene.textures.length;
     animationLength.text = "Animations: " + scene.animatables.length;
@@ -65,6 +67,10 @@ export function createMonitoring(scene, engine) {
       (!performance.memory
         ? "unavailabe"
         : (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed() + " Mb");
-    fpsValue.text = "FPS: " + engine.getFps().toFixed();
+  }
+  fpsValue.text = "FPS: " + engine.getFps().toFixed();
+
+
+
   });
 }

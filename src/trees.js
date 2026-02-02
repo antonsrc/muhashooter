@@ -52,6 +52,7 @@ export async function loadTrees(scene, shadows, groundSize) {
       shadows.addShadowCaster(instance);
     }
 
+    treeContainer.addAllToScene();
     return treeContainer;
   } catch (error) {
     console.error("Error loading model:", error);

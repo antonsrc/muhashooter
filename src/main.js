@@ -10,6 +10,7 @@ import { initInputDevices } from "./input-manager.js";
 
 import { loadCat } from "./cat.js";
 import { loadCubes } from "./cubes.js";
+import { loadTree } from "./tree.js";
 import { loadTrees } from "./trees.js";
 
 import { createCamera } from "./camera.js";
@@ -38,42 +39,18 @@ async function init() {
   const camera = createCamera(scene);
   const light = createLight(scene);
   const shadows = createShadows(light);
-
+  
+  createSpheres(scene, shadows);
   createGround(scene, { size: ground.size });
   createMonitoring(scene, engine);
 
-  const treeContainer = await BABYLON.LoadAssetContainerAsync(
-    "./tree.glb",
-    scene
-  );
-  const [treeMeshes] = treeContainer.meshes;
-  treeMeshes.scaling.setAll(1);
-  treeMeshes.position.x = 0;
-  treeMeshes.position.z = 15;
-
-  treeContainer.meshes.forEach((mesh) => {
-    if (mesh.getTotalVertices()) {
-      new BABYLON.PhysicsAggregate(
-        mesh,
-        BABYLON.PhysicsShapeType.MESH,
-        { mass: 1 },
-        scene
-      );
-    }
-  });
-
-  shadows.addShadowCaster(treeMeshes);
-  treeContainer.addAllToScene();
+  await loadCat(scene, shadows, pressedKeys, camera);
+  await loadCubes(scene, shadows);
+  await loadTree(scene, shadows);
+  await loadTrees(scene, shadows, ground.size);
 
   initEventListeners(engine);
   initInputDevices(scene, canvas, pressedKeys);
-
-  await loadCat(scene, shadows, pressedKeys, camera);
-  await loadCubes(scene, shadows);
-  await createSpheres(scene, shadows);
-
-  const trees = await loadTrees(scene, shadows, ground.size);
-  trees.addAllToScene();
 
   engine.runRenderLoop(() => scene.render());
 }
