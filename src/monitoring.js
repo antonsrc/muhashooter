@@ -48,29 +48,27 @@ export function createMonitoring(scene, engine) {
 
   scene.registerAfterRender(() => {
     let frameCounter = 0;
- if (frameCounter++ % 40 === 0) {
-    meshesLength.text = "Meshes: " + scene.meshes.length;
-    activeMeshesLength.text =
-      "Active Meshes: " + scene.getActiveMeshes().length;
-    activeVertices.text = `Total Vertices: ${scene.totalVerticesPerfCounter.current.toString()}`;
-    activeIndices.text = `Active Indices: ${scene.totalActiveIndicesPerfCounter.current.toString()}`;
-    materialsLength.text = "Materials: " + scene.materials.length;
-    texturesLength.text = "Textures: " + scene.textures.length;
-    animationLength.text = "Animations: " + scene.animatables.length;
-    drawCalls.text = "Draw Calls: " + sceneInstr.drawCallsCounter.current;
-    totalLights.text = "Lights: " + scene.lights.length;
-    shaderTotal.text =
-      "Total Shaders: " +
-      engineInstrumentation.shaderCompilationTimeCounter.count;
-    heapSize.text =
-      "Heap Used: " +
-      (!performance.memory
-        ? "unavailabe"
-        : (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed() + " Mb");
-  }
-  fpsValue.text = "FPS: " + engine.getFps().toFixed();
-
-
-
+    if (frameCounter++ % 10 === 0) {
+      meshesLength.text = "Meshes: " + scene.meshes.length;
+      activeMeshesLength.text =
+        "Active Meshes: " + scene.getActiveMeshes().length;
+      activeVertices.text = `Total Vertices: ${scene.totalVerticesPerfCounter.current.toString()}`;
+      activeIndices.text = `Active Indices: ${scene.totalActiveIndicesPerfCounter.current.toString()}`;
+      materialsLength.text = "Materials: " + scene.materials.length;
+      texturesLength.text = "Textures: " + scene.textures.length;
+      animationLength.text = "Animations: " + scene.animatables.length;
+      drawCalls.text = "Draw Calls: " + sceneInstr.drawCallsCounter.current;
+      totalLights.text = "Lights: " + scene.lights.length;
+      shaderTotal.text =
+        "Total Shaders: " +
+        engineInstrumentation.shaderCompilationTimeCounter.count;
+      heapSize.text =
+        "Heap Used: " +
+        (!performance.memory
+          ? "unavailabe"
+          : (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed() +
+            " Mb");
+    }
+    fpsValue.text = "FPS: " + engine.getFps().toFixed();
   });
 }

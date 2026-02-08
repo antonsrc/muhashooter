@@ -30,24 +30,32 @@ init().catch(console.error);
 
 async function init() {
   const canvas = document.getElementById("renderCanvas");
-  const engine = new BABYLON.Engine(canvas, false, { stencil: false }, true);
+  const engine = new BABYLON.Engine(
+    canvas,
+    false,
+    { stencil: false, antialias: true },
+    true
+  );
+
   const scene = new BABYLON.Scene(engine);
   const havok = await HavokPhysics();
   const hk = new BABYLON.HavokPlugin(true, havok);
   scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
 
+  scene.debugLayer.show({ overlay: true });
+
   const camera = createCamera(scene);
   const light = createLight(scene);
   const shadows = createShadows(light);
-  
+
   createSpheres(scene, shadows);
   createGround(scene, { size: ground.size });
-  createMonitoring(scene, engine);
+  // createMonitoring(scene, engine);
 
   await loadCat(scene, shadows, pressedKeys, camera);
   await loadCubes(scene, shadows);
   await loadTree(scene, shadows);
-  await loadTrees(scene, shadows, ground.size);
+  // await loadTrees(scene, shadows, ground.size);
 
   initEventListeners(engine);
   initInputDevices(scene, canvas, pressedKeys);
