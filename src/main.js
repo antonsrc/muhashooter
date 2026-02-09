@@ -18,6 +18,7 @@ import { createLight } from "./light.js";
 import { createShadows } from "./shadows.js";
 import { createGround } from "./ground.js";
 import { createSpheres } from "./spheres.js";
+import { createBoxZebra } from "./box-zebra.js";
 import { createMonitoring } from "./monitoring.js";
 
 const pressedKeys = {};
@@ -51,9 +52,10 @@ async function init() {
   createSpheres(scene, shadows);
   createGround(scene, { size: ground.size });
   // createMonitoring(scene, engine);
+  createBoxZebra(scene, shadows);
 
   await loadCat(scene, shadows, pressedKeys, camera);
-  await loadCubes(scene, shadows);
+  // await loadCubes(scene, shadows);
   await loadTree(scene, shadows);
   // await loadTrees(scene, shadows, ground.size);
 
