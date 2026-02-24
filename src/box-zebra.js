@@ -4,10 +4,10 @@ export async function createBoxZebra(scene, shadows) {
   for (let i = 0; i < 15; i++) {
     let baseBoxShape = BABYLON.MeshBuilder.CreateBox(
       "baseBox",
-      { width: 10, height: 4, depth: 10 },
+      { width: 10, height: 4, depth: 15 },
       scene
     );
-    baseBoxShape.position.set(-10, 2, 14 + i * 10 + i * i * 0.14);
+    baseBoxShape.position.set(-10, 2, 14 + i * 15 + i * i * 0.14);
     new BABYLON.PhysicsAggregate(baseBoxShape, BABYLON.PhysicsShapeType.BOX, {
       mass: 0,
     });

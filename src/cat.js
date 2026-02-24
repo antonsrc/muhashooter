@@ -13,20 +13,20 @@ const listStates = {
   startJump: "startJump",
   jump: "jump",
   fall: "fall",
-  semifall: "semifall",
 };
 
-const inAirSpeed = 10;
+const inAirSpeed = 18;
+const fallSpeed = 10;
 const onGroundSpeed = 12;
-const jumpHeight = 12;
+const jumpHeight = 15;
 let speed = 1;
 
-let canFall = null;
-let canSemiFall = null;
+let airFrames = 0;
+const fallFramesThreshold = 25;
 
 let inputDirection = BABYLON.Vector3.Zero();
 let onGround = false;
-let characterGravity = new BABYLON.Vector3(0, -18, 0);
+let characterGravity = new BABYLON.Vector3(0, -30, 0);
 let currentState = listStates.idle;
 
 export async function loadCat(scene, shadows, pressedKeys, camera) {
@@ -37,8 +37,6 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
   camera.parent = rootContainer;
   shadows.addShadowCaster(meshes);
   catGlb.addAllToScene();
-
-  const engine = scene.getPhysicsEngine();
 
   const animations = getAnimationGroups(catGlb, [
     "walk",
@@ -54,9 +52,11 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
 
   let catController = new BABYLON.PhysicsCharacterController(
     new BABYLON.Vector3(0, catHeight / 2, 0),
-    { capsuleHeight: catHeight, capsuleRadius: 0.3 },
+    { capsuleHeight: catHeight, capsuleRadius: 0.5 },
     scene
   );
+
+  catController.characterMass = 5;
 
   scene.onBeforePhysicsObservable.add(() => {
     if (scene.deltaTime == undefined) return;
@@ -68,19 +68,22 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
     const cameraForward = getCameraForwardDirection(camera);
     const cameraRight = getCameraRightDirection(camera);
 
-    const canMoving =
-      pressedKeys.KeyW ||
-      pressedKeys.KeyA ||
-      pressedKeys.KeyS ||
-      pressedKeys.KeyD;
     let oldState = currentState;
-    currentState = getNewState(
+
+    currentState = getNewState(currentState, pressedKeys, scene, catController);
+
+    const velocity = catController.getVelocity();
+    const position = catController.getPosition();
+    console.log(
+      oldState,
+      "->",
       currentState,
-      canMoving,
-      pressedKeys,
-      scene,
-      catController,
-      oldState
+      "\t",
+      onGround,
+      "\t",
+      velocity.y.toFixed(1),
+      "\t",
+      position.y.toFixed(2)
     );
 
     if (pressedKeys.KeyW) {
@@ -124,78 +127,100 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
   });
 }
 
-function getNewState(
-  currentState,
-  canMoving,
-  pressedKeys,
-  scene,
-  catController,
-  oldState
-) {
+function getNewState(currentState, pressedKeys, scene, catController) {
   const velocity = catController.getVelocity();
 
-  // console.log(oldState, "->", currentState, velocity.y);
+  const canMoving =
+    pressedKeys.KeyW ||
+    pressedKeys.KeyA ||
+    pressedKeys.KeyS ||
+    pressedKeys.KeyD;
+  let idleCondition = onGround && !canMoving && !pressedKeys.Space;
+  let walkCondition =
+    onGround && canMoving && !pressedKeys.Space && !pressedKeys.ShiftLeft;
+  let runCondition =
+    onGround && canMoving && !pressedKeys.Space && pressedKeys.ShiftLeft;
+  let jumpCondition = onGround && pressedKeys.Space;
+  let fallCondition =
+    !onGround && !scene.getAnimationGroupByName("jump").isPlaying;
 
-  if (!onGround && velocity.y < -5) {
-    canFall = true;
-  } else if (!onGround && velocity.y == 0) {
-    canSemiFall = true;
+  if (fallCondition) {
+    airFrames++;
   } else {
-    canFall = false;
-    canSemiFall = false;
+    airFrames = 0;
   }
 
   switch (currentState) {
     case listStates.idle:
       if (onGround) {
         inputDirection = BABYLON.Vector3.Zero();
+        catController.setVelocity(
+          new BABYLON.Vector3(velocity.x, 0, velocity.z)
+        );
       }
-      if (onGround && canMoving) {
+      if (idleCondition) {
+        return listStates.idle;
+      }
+      if (walkCondition) {
         return listStates.walk;
       }
-      if (onGround && pressedKeys.Space) {
+      if (runCondition) {
+        return listStates.run;
+      }
+      if (jumpCondition) {
         return listStates.startJump;
       }
-      if (canFall) {
+      if (fallCondition) {
         return listStates.fall;
-      }
-      if (canSemiFall) {
-        return listStates.semifall;
       }
       return listStates.idle;
     case listStates.walk:
-      speed = 1;
-      if (onGround && !canMoving) {
+      if (onGround) {
+        speed = 1;
+        inputDirection = BABYLON.Vector3.Zero();
+        catController.setVelocity(
+          new BABYLON.Vector3(velocity.x, 0, velocity.z)
+        );
+      }
+      if (idleCondition) {
         return listStates.idle;
       }
-      if (onGround && pressedKeys.Space) {
+      if (jumpCondition) {
         return listStates.startJump;
       }
-      if (canFall) {
-        return listStates.fall;
+      if (walkCondition) {
+        return listStates.walk;
       }
-      if (canSemiFall) {
-        return listStates.semifall;
-      }
-      if (onGround && canMoving && pressedKeys.ShiftLeft) {
+      if (runCondition) {
         return listStates.run;
       }
-      return listStates.walk;
-    case listStates.run:
-      speed = 3;
-      if (onGround && !canMoving) {
-        return listStates.idle;
-      }
-      if (onGround && pressedKeys.Space) {
-        return listStates.startJump;
-      }
-      if (canFall) {
+      if (fallCondition) {
         return listStates.fall;
       }
-      if (canSemiFall) {
-        return listStates.semifall;
+
+      return listStates.walk;
+    case listStates.run:
+      if (onGround) {
+        speed = 3;
+        inputDirection = BABYLON.Vector3.Zero();
+        catController.setVelocity(
+          new BABYLON.Vector3(velocity.x, 0, velocity.z)
+        );
       }
-      if (onGround && canMoving && !pressedKeys.ShiftLeft) {
+      if (idleCondition) {
+        return listStates.idle;
+      }
+      if (jumpCondition) {
+        return listStates.startJump;
+      }
+      if (runCondition) {
+        return listStates.run;
+      }
+      if (fallCondition) {
+        return listStates.fall;
+      }
+
+      if (walkCondition) {
         return listStates.walk;
       }
       return listStates.run;
@@ -204,56 +229,33 @@ function getNewState(
         return listStates.jump;
       }
     case listStates.jump:
-      // if (onGround) {
-      //   catController.setVelocity(
-      //     new BABYLON.Vector3(velocity.x, 0, velocity.z)
-      //   );
-      // }
-      if (onGround && !canMoving) {
-        return listStates.idle;
+      if (onGround) {
+        if (!canMoving) {
+          return listStates.idle;
+        } else if (!pressedKeys.ShiftLeft) {
+          return listStates.walk;
+        } else {
+          return listStates.run;
+        }
       }
-      if (onGround && canMoving && !pressedKeys.ShiftLeft) {
-        return listStates.walk;
-      }
-      if (onGround && canMoving && pressedKeys.ShiftLeft) {
-        return listStates.run;
-      }
-      if (canFall && !scene.getAnimationGroupByName("jump").isPlaying) {
+      if (fallCondition) {
+        inputDirection = BABYLON.Vector3.Zero();
         return listStates.fall;
-      }
-      if (canSemiFall && !scene.getAnimationGroupByName("jump").isPlaying) {
-        return listStates.semifall;
       }
       return listStates.jump;
     case listStates.fall:
-      // if (onGround) {
-      //   catController.setVelocity(
-      //     new BABYLON.Vector3(velocity.x, 0, velocity.z)
-      //   );
-      // }
-
-      if (onGround && !canMoving) {
-        return listStates.idle;
-      }
-      if (onGround && canMoving && !pressedKeys.ShiftLeft) {
-        return listStates.walk;
-      }
-      if (onGround && canMoving && pressedKeys.ShiftLeft) {
-        return listStates.run;
-      }
-      return listStates.fall;
-    case listStates.semifall:
-      if (onGround && !canMoving) {
-        return listStates.idle;
-      }
-      if (canSemiFall && canMoving) {
-        return listStates.walk;
-      }
-
-      if (canFall) {
+      if (onGround) {
+        if (!canMoving) {
+          return listStates.idle;
+        } else if (!pressedKeys.ShiftLeft) {
+          return listStates.walk;
+        } else {
+          return listStates.run;
+        }
+      } else {
+        inputDirection = BABYLON.Vector3.Zero();
         return listStates.fall;
       }
-      return listStates.semifall;
   }
 }
 
@@ -280,6 +282,9 @@ function getDesiredVelocity(
   animations,
   currentState
 ) {
+  const fallVerticalVelocity =
+    currentVelocity.y + characterGravity.y * deltaTime;
+
   switch (currentState) {
     case listStates.idle:
       setAnimation("idle", ["walk", "run", "jump", "fall"], animations);
@@ -298,18 +303,13 @@ function getDesiredVelocity(
     case listStates.jump:
       return inputDirection
         .scale(inAirSpeed * speed)
-        .addInPlace(upWorld.scale(currentVelocity.dot(upWorld)))
-        .addInPlace(characterGravity.scale(deltaTime));
+        .addInPlace(new BABYLON.Vector3(0, fallVerticalVelocity, 0));
     case listStates.fall:
-      setAnimation("fall", ["idle", "walk", "jump", "run"], animations);
+      if (airFrames > fallFramesThreshold) {
+        setAnimation("fall", ["idle", "walk", "jump", "run"], animations);
+      }
       return inputDirection
-        .scale(inAirSpeed * speed)
-        .addInPlace(upWorld.scale(currentVelocity.dot(upWorld)))
-        .addInPlace(characterGravity.scale(deltaTime * 2));
-    case listStates.semifall:
-      return inputDirection
-        .scale(inAirSpeed * speed)
-        .addInPlace(upWorld.scale(currentVelocity.dot(upWorld)))
-        .addInPlace(characterGravity.scale(deltaTime * 2));
+        .scale(fallSpeed * speed)
+        .addInPlace(new BABYLON.Vector3(0, fallVerticalVelocity, 0));
   }
 }
