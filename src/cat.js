@@ -1,11 +1,11 @@
 import * as BABYLON from "@babylonjs/core";
+
 import {
   setAnimation,
   setAnimationBlending,
   getAnimationGroups,
 } from "./utils.js";
 
-const upWorld = BABYLON.Vector3.Up();
 const listStates = {
   walk: "walk",
   idle: "idle",
@@ -15,19 +15,21 @@ const listStates = {
   fall: "fall",
 };
 
-const inAirSpeed = 18;
-const fallSpeed = 10;
-const onGroundSpeed = 12;
 const jumpHeight = 15;
+
 let speed = 1;
+const jumpSpeed = 15;
+const fallSpeed = 10;
+const walkSpeed = 12;
 
 let airFrames = 0;
-const fallFramesThreshold = 25;
+const fallFramesLimit = 25;
 
 let inputDirection = BABYLON.Vector3.Zero();
-let onGround = false;
-let characterGravity = new BABYLON.Vector3(0, -30, 0);
 let currentState = listStates.idle;
+let onGround = false;
+const characterHeight = 6;
+const characterGravity = new BABYLON.Vector3(0, -30, 0);
 
 export async function loadCat(scene, shadows, pressedKeys, camera) {
   const catGlb = await BABYLON.LoadAssetContainerAsync("./cat.glb", scene);
@@ -47,12 +49,11 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
   ]);
   await setAnimationBlending(catGlb);
 
-  const catHeight = 6;
-  meshes.position.set(0, -catHeight / 2, 0);
+  meshes.position.set(0, -characterHeight / 2, 0);
 
   let catController = new BABYLON.PhysicsCharacterController(
-    new BABYLON.Vector3(0, catHeight / 2, 0),
-    { capsuleHeight: catHeight, capsuleRadius: 0.5 },
+    new BABYLON.Vector3(0, characterHeight / 2, 0),
+    { capsuleHeight: characterHeight, capsuleRadius: 0.5 },
     scene
   );
 
@@ -291,21 +292,21 @@ function getDesiredVelocity(
       return BABYLON.Vector3.Zero();
     case listStates.walk:
       setAnimation("walk", ["idle", "run", "jump", "fall"], animations);
-      return inputDirection.scale(onGroundSpeed * speed);
+      return inputDirection.scale(walkSpeed * speed);
     case listStates.run:
       setAnimation("run", ["idle", "walk", "jump", "fall"], animations);
-      return inputDirection.scale(onGroundSpeed * speed);
+      return inputDirection.scale(walkSpeed * speed);
     case listStates.startJump:
       setAnimation("jump", ["idle", "run", "walk", "fall"], animations, false);
       return inputDirection
-        .scale(inAirSpeed * speed)
-        .addInPlace(upWorld.scale(jumpHeight));
+        .scale(jumpSpeed * speed)
+        .addInPlace(BABYLON.Vector3.Up().scale(jumpHeight));
     case listStates.jump:
       return inputDirection
-        .scale(inAirSpeed * speed)
+        .scale(jumpSpeed * speed)
         .addInPlace(new BABYLON.Vector3(0, fallVerticalVelocity, 0));
     case listStates.fall:
-      if (airFrames > fallFramesThreshold) {
+      if (airFrames > fallFramesLimit) {
         setAnimation("fall", ["idle", "walk", "jump", "run"], animations);
       }
       return inputDirection
