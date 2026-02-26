@@ -1,6 +1,6 @@
 {
   "name": "muhashooter",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "online third person shooter game",
   "main": "index.js",
   "author": "Moshnyakov Anton Alexeevich",
