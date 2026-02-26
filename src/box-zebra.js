@@ -19,6 +19,9 @@ export async function createBoxZebra(scene, shadows) {
       0.1 + i * 0.05
     );
     baseBoxShape.material = material;
-    shadows.addShadowCaster(baseBoxShape);
+
+    if (shadows) {
+      shadows.addShadowCaster(baseBoxShape);
+    }
   }
 }

@@ -7,6 +7,9 @@ export function createLight(scene) {
     scene
   );
   light.intensity = 2;
+  light.autoCalcShadowZBounds = true;
+  light.autoUpdateExtends = false;
+
   const hemisphericLight = new BABYLON.HemisphericLight(
     "hemisphericLight",
     new BABYLON.Vector3(0, 1, 0),

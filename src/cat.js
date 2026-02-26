@@ -37,7 +37,9 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
   const rootContainer = new BABYLON.TransformNode("rootContainer", scene);
   meshes.parent = rootContainer;
   camera.parent = rootContainer;
-  shadows.addShadowCaster(meshes);
+  if (shadows) {
+    shadows.addShadowCaster(meshes);
+  }
   catGlb.addAllToScene();
 
   const animations = getAnimationGroups(catGlb, [
@@ -53,7 +55,7 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
 
   let catController = new BABYLON.PhysicsCharacterController(
     new BABYLON.Vector3(0, characterHeight / 2, 0),
-    { capsuleHeight: characterHeight, capsuleRadius: 0.5 },
+    { capsuleHeight: characterHeight, capsuleRadius: 0.6 },
     scene
   );
 
