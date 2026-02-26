@@ -43,7 +43,7 @@ async function init() {
   const hk = new BABYLON.HavokPlugin(true, havok);
   scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
 
-  scene.debugLayer.show({ showInspector: true, showExplorer: false });
+  scene.debugLayer.show({ showInspector: true, showExplorer: true });
 
   const camera = createCamera(scene);
   const light = createLight(scene);
@@ -52,7 +52,7 @@ async function init() {
   // createSpheres(scene, shadows);
   createGround(scene, { size: ground.size });
   // createMonitoring(scene, engine);
-  createBoxZebra(scene, null);
+  createBoxZebra(scene, shadows);
 
   await loadCat(scene, shadows, pressedKeys, camera);
   // await loadCubes(scene, shadows);

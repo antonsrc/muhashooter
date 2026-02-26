@@ -36,6 +36,24 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
   const [meshes] = catGlb.meshes;
   const rootContainer = new BABYLON.TransformNode("rootContainer", scene);
   meshes.parent = rootContainer;
+  // meshes.receiveShadows = true;
+
+
+catGlb.meshes.forEach(mesh => {
+    mesh.receiveShadows = true; // Кот принимает тени
+    // if (shadows) {
+    //   shadows.addShadowCaster(mesh); // Кот отбрасывает тени
+    // }
+    
+    // // Также настраиваем все дочерние меши
+    // mesh.getChildMeshes().forEach(childMesh => {
+    //   childMesh.receiveShadows = true;
+    //   if (shadows) {
+    //     shadows.addShadowCaster(childMesh);
+    //   }
+    // });
+  });
+
   camera.parent = rootContainer;
   if (shadows) {
     shadows.addShadowCaster(meshes);
