@@ -36,29 +36,16 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
   const [meshes] = catGlb.meshes;
   const rootContainer = new BABYLON.TransformNode("rootContainer", scene);
   meshes.parent = rootContainer;
-  // meshes.receiveShadows = true;
-
-
-catGlb.meshes.forEach(mesh => {
-    mesh.receiveShadows = true; // Кот принимает тени
-    // if (shadows) {
-    //   shadows.addShadowCaster(mesh); // Кот отбрасывает тени
-    // }
-    
-    // // Также настраиваем все дочерние меши
-    // mesh.getChildMeshes().forEach(childMesh => {
-    //   childMesh.receiveShadows = true;
-    //   if (shadows) {
-    //     shadows.addShadowCaster(childMesh);
-    //   }
-    // });
-  });
+  meshes.position.set(0, -characterHeight / 2, 0);
 
   camera.parent = rootContainer;
+
+  catGlb.meshes.forEach((mesh) => {
+    mesh.receiveShadows = true;
+  });
   if (shadows) {
     shadows.addShadowCaster(meshes);
   }
-  catGlb.addAllToScene();
 
   const animations = getAnimationGroups(catGlb, [
     "walk",
@@ -69,16 +56,14 @@ catGlb.meshes.forEach(mesh => {
   ]);
   await setAnimationBlending(catGlb);
 
-  meshes.position.set(0, -characterHeight / 2, 0);
-
   let catController = new BABYLON.PhysicsCharacterController(
     new BABYLON.Vector3(0, characterHeight / 2, 0),
     { capsuleHeight: characterHeight, capsuleRadius: 0.6 },
     scene
   );
-
   catController.characterMass = 5;
 
+  catGlb.addAllToScene();
   scene.onBeforePhysicsObservable.add(() => {
     if (scene.deltaTime == undefined) return;
     let deltaTime = (scene.deltaTime || 1) / 1000.0;
@@ -246,7 +231,9 @@ function getNewState(currentState, pressedKeys, scene, catController) {
       }
       return listStates.run;
     case listStates.startJump:
-      if (scene.getAnimationGroupByName("jump").isPlaying) {
+      // условие для наклонных поверхностей от ложных анимаций прыжка,
+      // когда персонаж поднимается в гору и одновременно нажата клавиша Space
+      if (velocity.y == jumpHeight) {
         return listStates.jump;
       }
     case listStates.jump:
@@ -263,7 +250,9 @@ function getNewState(currentState, pressedKeys, scene, catController) {
         inputDirection = BABYLON.Vector3.Zero();
         return listStates.fall;
       }
+
       return listStates.jump;
+
     case listStates.fall:
       if (onGround) {
         if (!canMoving) {
@@ -317,11 +306,11 @@ function getDesiredVelocity(
       setAnimation("run", ["idle", "walk", "jump", "fall"], animations);
       return inputDirection.scale(walkSpeed * speed);
     case listStates.startJump:
-      setAnimation("jump", ["idle", "run", "walk", "fall"], animations, false);
       return inputDirection
         .scale(jumpSpeed * speed)
         .addInPlace(BABYLON.Vector3.Up().scale(jumpHeight));
     case listStates.jump:
+      setAnimation("jump", ["idle", "run", "walk", "fall"], animations, false);
       return inputDirection
         .scale(jumpSpeed * speed)
         .addInPlace(new BABYLON.Vector3(0, fallVerticalVelocity, 0));

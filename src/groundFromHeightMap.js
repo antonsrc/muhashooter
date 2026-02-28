@@ -2,11 +2,31 @@ import * as BABYLON from "@babylonjs/core";
 
 export function createGround(scene, options = {}) {
   options = { ...{ name: "ground" }, ...options };
-  const ground = BABYLON.MeshBuilder.CreateGround(
-    options.name,
-    { width: options.size, height: options.size },
-    scene
+  // const ground = BABYLON.MeshBuilder.CreateGround(
+  //   options.name,
+  //   { width: options.size, height: options.size },
+  //   scene
+  // );
+
+  let ground = BABYLON.MeshBuilder.CreateGroundFromHeightMap(
+    "ground",
+    "heightMap.jpg",
+    {
+      width: options.size,
+      height: options.size,
+      maxHeight: 100,
+      subdivisions: 40,
+      onReady: (mesh) => {
+        new BABYLON.PhysicsAggregate(
+          mesh,
+          BABYLON.PhysicsShapeType.MESH,
+          { mass: 0 },
+          scene
+        );
+      },
+    }
   );
+
   const material = new BABYLON.StandardMaterial("material", scene);
   const texture = new BABYLON.Texture(
     "./tempGround.png",

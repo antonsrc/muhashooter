@@ -16,7 +16,10 @@ import { loadTrees } from "./trees.js";
 import { createCamera } from "./camera.js";
 import { createLight } from "./light.js";
 import { createShadows } from "./shadows.js";
-import { createGround } from "./ground.js";
+// import { createGround } from "./ground.js";
+import { createGround } from "./groundFromHeightMap.js";
+
+
 import { createSpheres } from "./spheres.js";
 import { createBoxZebra } from "./box-zebra.js";
 import { createMonitoring } from "./monitoring.js";
