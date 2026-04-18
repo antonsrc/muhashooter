@@ -92,6 +92,45 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
       position.y.toFixed(2)
     );
 
+    if (pressedKeys["leftMouseButton"] && !pressedKeys.KeyS) {
+      const sphere = BABYLON.MeshBuilder.CreateSphere(
+        `bullet`,
+        { diameter: 0.5, segments: 8 },
+        scene
+      );
+
+      const material = new BABYLON.StandardMaterial("material", scene);
+      material.diffuseColor = new BABYLON.Color3(
+        Math.random(),
+        Math.random(),
+        Math.random()
+      );
+      sphere.material = material;
+
+      shadows.addShadowCaster(sphere);
+      sphere.position.set(position.x, position.y + 4, position.z);
+
+      let sphereAggregate = new BABYLON.PhysicsAggregate(
+        sphere,
+        BABYLON.PhysicsShapeType.SPHERE,
+        { mass: 0.01, restitution: 4 },
+        scene
+      );
+
+      sphereAggregate.body.applyForce(
+        cameraForward.scale(50),
+        sphere.absolutePosition
+      );
+
+      // Удаляем через 5 секунд
+      setTimeout(() => {
+        // Удаляем физическое тело
+        sphereAggregate.dispose();
+        // Удаляем меш
+        sphere.dispose();
+      }, 5000);
+    }
+
     if (pressedKeys.KeyW) {
       inputDirection.addInPlace(cameraForward);
     }

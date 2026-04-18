@@ -9,7 +9,7 @@ export function createGround(scene, options = {}) {
   );
   const material = new BABYLON.StandardMaterial("material", scene);
   const texture = new BABYLON.Texture(
-    "./tempGround.png",
+    "./ground.png",
     scene,
     false,
     false,

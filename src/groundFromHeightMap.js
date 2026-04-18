@@ -1,12 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 
-export function createGround(scene, options = {}) {
+export async function createGround(scene, options = {}) {
   options = { ...{ name: "ground" }, ...options };
-  // const ground = BABYLON.MeshBuilder.CreateGround(
-  //   options.name,
-  //   { width: options.size, height: options.size },
-  //   scene
-  // );
 
   let ground = BABYLON.MeshBuilder.CreateGroundFromHeightMap(
     "ground",
@@ -29,15 +24,15 @@ export function createGround(scene, options = {}) {
 
   const material = new BABYLON.StandardMaterial("material", scene);
   const texture = new BABYLON.Texture(
-    "./tempGround.png",
+    "./ground.png",
     scene,
     false,
     false,
     BABYLON.Constants.TEXTURE_NEAREST_SAMPLINGMODE
   );
 
-  texture.uScale = 128;
-  texture.vScale = 128;
+  texture.uScale = 32;
+  texture.vScale = 32;
   material.diffuseTexture = texture;
   material.specularColor = BABYLON.Color3.Black();
   material.roughness = 1.0;
@@ -51,4 +46,6 @@ export function createGround(scene, options = {}) {
     { mass: 0 },
     scene
   );
+
+  return ground;
 }

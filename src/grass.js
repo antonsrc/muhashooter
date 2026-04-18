@@ -1,16 +1,16 @@
 import * as BABYLON from "@babylonjs/core";
 
-export async function loadTrees(scene, shadows, groundSize, ground) {
+export async function loadGrass(scene, shadows, groundSize, ground) {
   try {
     const treeContainer = await BABYLON.LoadAssetContainerAsync(
-      "./tree.glb",
+      "./grass.glb",
       scene
     );
     const [treeMeshes] = treeContainer.meshes;
-    treeMeshes.scaling.setAll(1);
+    treeMeshes.scaling.setAll(2);
     treeMeshes.position.x = 0;
 
-    const material = new BABYLON.PBRMaterial("materialTree", scene);
+    const material = new BABYLON.PBRMaterial("materialGrass", scene);
 
     const childMeshes = treeMeshes.getChildMeshes(false);
     const merged = BABYLON.Mesh.MergeMeshes(
@@ -49,7 +49,7 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
     merged.material = material;
     merged.isVisible = false;
 
-    shadows.addShadowCaster(merged);
+    // shadows.addShadowCaster(merged);
 
     // Функция для получения высоты земли в точке
     const getGroundHeight = (x, z) => {
@@ -59,9 +59,6 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
         new BABYLON.Vector3(0, -1, 0), // Направление вниз
         300 // Длина луча
       );
-
-      // let rayHelper = new BABYLON.RayHelper(ray);
-      // rayHelper.show(scene);
 
       // Проверяем пересечение с землей
       const hit = scene.pickWithRay(
@@ -73,7 +70,6 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
       );
 
       if (hit.hit) {
-        // console.log(hit)
         return hit.pickedPoint.y;
       }
 
@@ -82,16 +78,16 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
       return 0;
     };
 
-    const COUNT = 1000;
+    const COUNT = 10000;
 
-    const offset = 10;
+    const offset = 5;
     const max = groundSize / 2 - 2 - offset;
 
     const getPos = () =>
       (offset + Math.random() * max) * (Math.random() > 0.5 ? 1 : -1);
 
     for (let i = 0; i < COUNT; i++) {
-      const instance = merged.createInstance("treeInstance_" + i);
+      const instance = merged.createInstance("grassInstance_" + i);
       const x = getPos();
       const z = getPos();
 
@@ -100,20 +96,11 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
       instance.position.set(x, groundY, z);
       instance.rotate(treeMeshes.up, BABYLON.Scalar.RandomRange(1, 180));
 
-      const scale = BABYLON.Scalar.RandomRange(1, 3);
+      const scale = BABYLON.Scalar.RandomRange(1, 2);
       instance.scaling.setAll(scale);
       instance.freezeWorldMatrix();
       instance.material.freeze();
       instance.alwaysSelectAsActiveMesh = true;
-
-      if (instance.getTotalVertices()) {
-        new BABYLON.PhysicsAggregate(instance, BABYLON.PhysicsShapeType.BOX, {
-          mass: 0,
-          extents: new BABYLON.Vector3(1 * scale, 20 * scale, 1 * scale),
-        });
-      }
-
-      shadows.addShadowCaster(instance);
     }
 
     treeContainer.addAllToScene();
