@@ -15,10 +15,10 @@ const listStates = {
   fall: "fall",
 };
 
-const jumpHeight = 15;
+const jumpHeight = 25;
 
 let speed = 1;
-const jumpSpeed = 15;
+const jumpSpeed = 25;
 const fallSpeed = 10;
 const walkSpeed = 12;
 

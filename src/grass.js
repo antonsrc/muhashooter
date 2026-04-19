@@ -6,9 +6,17 @@ export async function loadGrass(scene, shadows, groundSize, ground) {
       "./grass.glb",
       scene
     );
+const treeContainer_1 = await BABYLON.LoadAssetContainerAsync(
+      "./grass_0_plane.glb",
+      scene
+    );
+
     const [treeMeshes] = treeContainer.meshes;
     treeMeshes.scaling.setAll(2);
     treeMeshes.position.x = 0;
+    const [treeMeshes_1] = treeContainer_1.meshes;
+    treeMeshes_1.scaling.setAll(2);
+    treeMeshes_1.position.x = 0;
 
     const material = new BABYLON.PBRMaterial("materialGrass", scene);
 
@@ -21,6 +29,15 @@ export async function loadGrass(scene, shadows, groundSize, ground) {
       false,
       false
     );
+    const childMeshes_1 = treeMeshes_1.getChildMeshes(false);
+        const merged_1 = BABYLON.Mesh.MergeMeshes(
+          childMeshes_1,
+          true,
+          true,
+          undefined,
+          false,
+          false
+        );
 
     if (childMeshes.length > 0 && childMeshes[0].material) {
       const originalMat = childMeshes[0].material;
@@ -45,6 +62,9 @@ export async function loadGrass(scene, shadows, groundSize, ground) {
     material.roughness = 1.0; // Максимальная шероховатость
     material.metallic = 0.0; // Отключаем металличность
     material.backFaceCulling = false;
+
+    merged.addLODLevel(100, merged_1);
+    merged.addLODLevel(700, null);
 
     merged.material = material;
     merged.isVisible = false;
@@ -78,7 +98,7 @@ export async function loadGrass(scene, shadows, groundSize, ground) {
       return 0;
     };
 
-    const COUNT = 10000;
+    const COUNT = 8000;
 
     const offset = 5;
     const max = groundSize / 2 - 2 - offset;

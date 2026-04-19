@@ -6,15 +6,32 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
       "./tree.glb",
       scene
     );
+    const treeContainer_1 = await BABYLON.LoadAssetContainerAsync(
+      "./tree_1_plane.glb",
+      scene
+    );
+
     const [treeMeshes] = treeContainer.meshes;
     treeMeshes.scaling.setAll(1);
     treeMeshes.position.x = 0;
+    const [treeMeshes_1] = treeContainer_1.meshes;
+    treeMeshes_1.scaling.setAll(1);
+    treeMeshes_1.position.x = 0;
 
     const material = new BABYLON.PBRMaterial("materialTree", scene);
 
     const childMeshes = treeMeshes.getChildMeshes(false);
     const merged = BABYLON.Mesh.MergeMeshes(
       childMeshes,
+      true,
+      true,
+      undefined,
+      false,
+      false
+    );
+    const childMeshes_1 = treeMeshes_1.getChildMeshes(false);
+    const merged_1 = BABYLON.Mesh.MergeMeshes(
+      childMeshes_1,
       true,
       true,
       undefined,
@@ -45,6 +62,9 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
     material.roughness = 1.0; // Максимальная шероховатость
     material.metallic = 0.0; // Отключаем металличность
     material.backFaceCulling = false;
+
+    merged.addLODLevel(150, merged_1);
+    merged.addLODLevel(700, null);
 
     merged.material = material;
     merged.isVisible = false;
