@@ -16,8 +16,8 @@ export function createGround(scene, options = {}) {
     BABYLON.Constants.TEXTURE_NEAREST_SAMPLINGMODE
   );
 
-  texture.uScale = 128;
-  texture.vScale = 128;
+  texture.uScale = 32;
+  texture.vScale = 32;
   material.diffuseTexture = texture;
   material.specularColor = BABYLON.Color3.Black();
   material.roughness = 1.0;

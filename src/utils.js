@@ -38,3 +38,28 @@ export async function setRoughnessMaterial(meshes) {
     }
   });
 }
+
+export function precomputeGroundHeights(ground, scene, offset, max) {
+  let cache = [];
+  const x = getPos(offset, max);
+  const z = getPos(offset, max);
+  const ray = new BABYLON.Ray(
+    new BABYLON.Vector3(x, 200, z),
+    BABYLON.Vector3.Down(),
+    300
+  );
+
+  const hit = scene.pickWithRay(
+    ray,
+    (mesh) => {
+      return mesh === ground;
+    },
+    true
+  );
+  const y = hit.hit ? hit.pickedPoint.y : 0;
+  return [x, y, z];
+}
+
+export function getPos(offset, max) {
+  return (offset + Math.random() * max) * (Math.random() > 0.5 ? 1 : -1);
+}

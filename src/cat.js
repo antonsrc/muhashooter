@@ -1,5 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 
+import { createBullets } from "./spheresBullet.js";
+
 import {
   setAnimation,
   setAnimationBlending,
@@ -64,7 +66,7 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
   catController.characterMass = 5;
 
   catGlb.addAllToScene();
-  scene.onBeforePhysicsObservable.add(() => {
+  scene.onBeforePhysicsObservable.add(async () => {
     if (scene.deltaTime == undefined) return;
     let deltaTime = (scene.deltaTime || 1) / 1000.0;
 
@@ -93,40 +95,19 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
     );
 
     if (pressedKeys["leftMouseButton"] && !pressedKeys.KeyS) {
-      const sphere = BABYLON.MeshBuilder.CreateSphere(
-        `bullet`,
-        { diameter: 0.5, segments: 8 },
-        scene
-      );
+      const { sphere, physicsAggregate } = await createBullets(scene, shadows, {
+        x: position.x,
+        y: position.y + 4,
+        z: position.z,
+      });
 
-      const material = new BABYLON.StandardMaterial("material", scene);
-      material.diffuseColor = new BABYLON.Color3(
-        Math.random(),
-        Math.random(),
-        Math.random()
-      );
-      sphere.material = material;
-
-      shadows.addShadowCaster(sphere);
-      sphere.position.set(position.x, position.y + 4, position.z);
-
-      let sphereAggregate = new BABYLON.PhysicsAggregate(
-        sphere,
-        BABYLON.PhysicsShapeType.SPHERE,
-        { mass: 0.01, restitution: 4 },
-        scene
-      );
-
-      sphereAggregate.body.applyForce(
+      physicsAggregate.body.applyForce(
         cameraForward.scale(50),
         sphere.absolutePosition
       );
 
-      // Удаляем через 5 секунд
       setTimeout(() => {
-        // Удаляем физическое тело
-        sphereAggregate.dispose();
-        // Удаляем меш
+        physicsAggregate.dispose();
         sphere.dispose();
       }, 5000);
     }

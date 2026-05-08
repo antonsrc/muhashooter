@@ -27,6 +27,7 @@ export function initInputDevices(scene, canvas, pressedKeys) {
         scene.debugLayer.hide();
       } else {
         scene.debugLayer.show({ overlay: true });
+        // scene.debugLayer.show({ showInspector: true, showExplorer: true });
       }
     }
   });
