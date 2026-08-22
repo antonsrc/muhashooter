@@ -3,25 +3,18 @@ import HavokPhysics from "@babylonjs/havok";
 import "@babylonjs/loaders/glTF/2.0/glTFLoader";
 import "@babylonjs/inspector";
 
-import "./styles.css";
-
 import { initInputDevices } from "./input-manager.js";
 
 import { loadCat } from "./cat.js";
-import { loadCubes } from "./cubes.js";
 import { loadTrees } from "./trees.js";
 import { loadGrass } from "./grass.js";
 
 import { createCamera } from "./camera.js";
-import { createLight } from "./light.js";
+import { createLight, setLightningEnvironment } from "./light.js";
 import { createShadows } from "./shadows.js";
 import { createGround } from "./groundFromHeightMap.js";
 // import { createGround } from "./ground.js";
-
-
 import { createBoxZebra } from "./box-zebra.js";
-
-import { setLightningEnvironment } from "./lightingEnvironment.js";
 
 const pressedKeys = {};
 
@@ -37,7 +30,7 @@ async function init() {
     canvas,
     false,
     { stencil: false, antialias: true },
-    true
+    true,
   );
   const scene = new BABYLON.Scene(engine);
   const camera = createCamera(scene);
@@ -52,10 +45,9 @@ async function init() {
   let groundFromHeightMap = await createGround(scene, { size: ground.size });
   createBoxZebra(scene, shadows);
 
-  await loadCat(scene, shadows, pressedKeys, camera);
-  // await loadCubes(scene, shadows);
   await loadTrees(scene, shadows, ground.size, groundFromHeightMap);
   await loadGrass(scene, shadows, ground.size, groundFromHeightMap);
+  await loadCat(scene, shadows, pressedKeys, camera);
 
   initEventListeners(engine);
   initInputDevices(scene, canvas, pressedKeys);

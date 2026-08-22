@@ -1,12 +1,12 @@
 import * as BABYLON from "@babylonjs/core";
 
-import { precomputeGroundHeights, getPos } from "./utils.js";
+import { precomputeGroundHeights } from "./utils.js";
 
 export async function loadGrass(scene, shadows, groundSize, ground) {
   try {
     const treeContainer = await BABYLON.LoadAssetContainerAsync(
       "./grass.glb",
-      scene
+      scene,
     );
 
     const [treeMeshes] = treeContainer.meshes;
@@ -20,7 +20,7 @@ export async function loadGrass(scene, shadows, groundSize, ground) {
       true,
       undefined,
       false,
-      false
+      false,
     );
 
     const material = new BABYLON.StandardMaterial("materialGrass", scene);
@@ -56,7 +56,7 @@ export async function loadGrass(scene, shadows, groundSize, ground) {
 
     const COUNT = 8000;
 
-    let cache = localStorage.getItem("cacheGroundDataGrass");
+    let cache = localStorage.getItem("cacheGroundGrass");
     let xyz = [];
     if (cache && JSON.parse(cache).length == COUNT) {
       xyz = JSON.parse(cache);
@@ -64,7 +64,7 @@ export async function loadGrass(scene, shadows, groundSize, ground) {
       for (let i = 0; i < COUNT; i++) {
         xyz.push(precomputeGroundHeights(ground, scene, offset, max));
       }
-      localStorage.setItem("cacheGroundDataGrass", JSON.stringify(xyz));
+      localStorage.setItem("cacheGroundGrass", JSON.stringify(xyz));
     }
 
     const bufferMatrices = new Float32Array(COUNT * 16);
@@ -72,7 +72,7 @@ export async function loadGrass(scene, shadows, groundSize, ground) {
       const [x, y, z] = xyz[i];
       const pos = new BABYLON.Vector3(x, y, z);
       const scale = BABYLON.Vector3.One().setAll(
-        BABYLON.Scalar.RandomRange(1, 2)
+        BABYLON.Scalar.RandomRange(1, 2),
       );
       const angle = BABYLON.Scalar.RandomRange(0, 2 * Math.PI);
       const rot = BABYLON.Quaternion.FromEulerAngles(0, angle, 0);

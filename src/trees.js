@@ -1,26 +1,17 @@
 import * as BABYLON from "@babylonjs/core";
 
-import { precomputeGroundHeights, getPos } from "./utils.js";
+import { precomputeGroundHeights } from "./utils.js";
 
 export async function loadTrees(scene, shadows, groundSize, ground) {
   try {
     const treeContainer = await BABYLON.LoadAssetContainerAsync(
       "./tree.glb",
-      scene
+      scene,
     );
-
-    // const treeContainerPlane = await BABYLON.LoadAssetContainerAsync(
-    //   "./treePlane.glb",
-    //   scene
-    // );
 
     const [treeMeshes] = treeContainer.meshes;
     treeMeshes.scaling.setAll(1);
     treeMeshes.position.x = 0;
-
-    // const [treeMeshesPlane] = treeContainerPlane.meshes;
-    // treeMeshesPlane.scaling.setAll(1);
-    // treeMeshesPlane.position.x = 0;
 
     const childMeshes = treeMeshes.getChildMeshes(false);
     const merged = BABYLON.Mesh.MergeMeshes(
@@ -29,18 +20,8 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
       true,
       undefined,
       false,
-      true
+      true,
     );
-
-    // const childMeshesPlane = treeMeshesPlane.getChildMeshes(false);
-    // const mergedPlane = BABYLON.Mesh.MergeMeshes(
-    //   childMeshesPlane,
-    //   true,
-    //   true,
-    //   undefined,
-    //   false,
-    //   false
-    // );
 
     const material = new BABYLON.StandardMaterial("materialTree", scene);
     const originalMat = childMeshes[0]?.material;
@@ -65,9 +46,6 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
     material.alpha = 1.0;
     material.freeze();
 
-    // merged.addLODLevel(50, mergedPlane);
-    // merged.addLODLevel(500, null);
-
     merged.material = material;
     merged.isPickable = false;
     merged.receiveShadows = false;
@@ -78,7 +56,7 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
 
     const COUNT = 3000;
 
-    let cache = localStorage.getItem("cacheGroundData");
+    let cache = localStorage.getItem("cacheGroundTrees");
     let xyz = [];
     if (cache && JSON.parse(cache).length == COUNT) {
       xyz = JSON.parse(cache);
@@ -86,7 +64,7 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
       for (let i = 0; i < COUNT; i++) {
         xyz.push(precomputeGroundHeights(ground, scene, offset, max));
       }
-      localStorage.setItem("cacheGroundData", JSON.stringify(xyz));
+      localStorage.setItem("cacheGroundTrees", JSON.stringify(xyz));
     }
 
     const bufferMatrices = new Float32Array(COUNT * 16);
@@ -94,7 +72,7 @@ export async function loadTrees(scene, shadows, groundSize, ground) {
       const [x, y, z] = xyz[i];
       const pos = new BABYLON.Vector3(x, y, z);
       const scale = BABYLON.Vector3.One().setAll(
-        BABYLON.Scalar.RandomRange(2, 5)
+        BABYLON.Scalar.RandomRange(2, 5),
       );
       const angle = BABYLON.Scalar.RandomRange(0, 2 * Math.PI);
       const rot = BABYLON.Quaternion.FromEulerAngles(0, angle, 0);

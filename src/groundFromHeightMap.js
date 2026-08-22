@@ -16,10 +16,10 @@ export async function createGround(scene, options = {}) {
           mesh,
           BABYLON.PhysicsShapeType.MESH,
           { mass: 0 },
-          scene
+          scene,
         );
       },
-    }
+    },
   );
 
   const material = new BABYLON.StandardMaterial("material", scene);
@@ -28,7 +28,7 @@ export async function createGround(scene, options = {}) {
     scene,
     false,
     false,
-    BABYLON.Constants.TEXTURE_NEAREST_SAMPLINGMODE
+    BABYLON.Constants.TEXTURE_NEAREST_SAMPLINGMODE,
   );
 
   texture.uScale = 32;
@@ -44,7 +44,7 @@ export async function createGround(scene, options = {}) {
     ground,
     BABYLON.PhysicsShapeType.BOX,
     { mass: 0 },
-    scene
+    scene,
   );
 
   return ground;

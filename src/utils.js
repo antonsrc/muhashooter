@@ -5,7 +5,12 @@ import * as BABYLON from "@babylonjs/core";
  * @param {string[]} stopAnims - ["walk", "run"]
  * @param {object} animations - object of AnimationGroup
  */
-export async function setAnimation(playAnim, stopAnims, animations, loop = true) {
+export async function setAnimation(
+  playAnim,
+  stopAnims,
+  animations,
+  loop = true,
+) {
   if (animations[playAnim].isPlaying) {
     return;
   }
@@ -40,13 +45,12 @@ export async function setRoughnessMaterial(meshes) {
 }
 
 export function precomputeGroundHeights(ground, scene, offset, max) {
-  let cache = [];
   const x = getPos(offset, max);
   const z = getPos(offset, max);
   const ray = new BABYLON.Ray(
     new BABYLON.Vector3(x, 200, z),
     BABYLON.Vector3.Down(),
-    300
+    300,
   );
 
   const hit = scene.pickWithRay(
@@ -54,7 +58,7 @@ export function precomputeGroundHeights(ground, scene, offset, max) {
     (mesh) => {
       return mesh === ground;
     },
-    true
+    true,
   );
   const y = hit.hit ? hit.pickedPoint.y : 0;
   return [x, y, z];

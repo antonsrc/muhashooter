@@ -61,7 +61,7 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
   let catController = new BABYLON.PhysicsCharacterController(
     new BABYLON.Vector3(0, characterHeight / 2, 0),
     { capsuleHeight: characterHeight, capsuleRadius: 0.6 },
-    scene
+    scene,
   );
   catController.characterMass = 5;
 
@@ -91,7 +91,7 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
       "\t",
       velocity.y.toFixed(1),
       "\t",
-      position.y.toFixed(2)
+      position.y.toFixed(2),
     );
 
     if (pressedKeys["leftMouseButton"] && !pressedKeys.KeyS) {
@@ -103,7 +103,7 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
 
       physicsAggregate.body.applyForce(
         cameraForward.scale(50),
-        sphere.absolutePosition
+        sphere.absolutePosition,
       );
 
       setTimeout(() => {
@@ -130,14 +130,14 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
     if (inputDirection.length() > 0.1) {
       const targetRotation = BABYLON.Quaternion.FromLookDirectionLH(
         inputDirection,
-        BABYLON.Axis.Y
+        BABYLON.Axis.Y,
       );
 
       BABYLON.Quaternion.SlerpToRef(
         meshes.rotationQuaternion,
         targetRotation,
         10 * deltaTime,
-        meshes.rotationQuaternion
+        meshes.rotationQuaternion,
       );
     }
 
@@ -145,7 +145,7 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
       deltaTime,
       catController.getVelocity(),
       animations,
-      currentState
+      currentState,
     );
     catController.setVelocity(desiredLinearVelocity);
     catController.integrate(deltaTime, support, characterGravity);
@@ -181,7 +181,7 @@ function getNewState(currentState, pressedKeys, scene, catController) {
       if (onGround) {
         inputDirection = BABYLON.Vector3.Zero();
         catController.setVelocity(
-          new BABYLON.Vector3(velocity.x, 0, velocity.z)
+          new BABYLON.Vector3(velocity.x, 0, velocity.z),
         );
       }
       if (idleCondition) {
@@ -205,7 +205,7 @@ function getNewState(currentState, pressedKeys, scene, catController) {
         speed = 1;
         inputDirection = BABYLON.Vector3.Zero();
         catController.setVelocity(
-          new BABYLON.Vector3(velocity.x, 0, velocity.z)
+          new BABYLON.Vector3(velocity.x, 0, velocity.z),
         );
       }
       if (idleCondition) {
@@ -230,7 +230,7 @@ function getNewState(currentState, pressedKeys, scene, catController) {
         speed = 3;
         inputDirection = BABYLON.Vector3.Zero();
         catController.setVelocity(
-          new BABYLON.Vector3(velocity.x, 0, velocity.z)
+          new BABYLON.Vector3(velocity.x, 0, velocity.z),
         );
       }
       if (idleCondition) {
@@ -310,7 +310,7 @@ function getDesiredVelocity(
   deltaTime,
   currentVelocity,
   animations,
-  currentState
+  currentState,
 ) {
   const fallVerticalVelocity =
     currentVelocity.y + characterGravity.y * deltaTime;

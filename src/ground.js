@@ -5,7 +5,7 @@ export function createGround(scene, options = {}) {
   const ground = BABYLON.MeshBuilder.CreateGround(
     options.name,
     { width: options.size, height: options.size },
-    scene
+    scene,
   );
   const material = new BABYLON.StandardMaterial("material", scene);
   const texture = new BABYLON.Texture(
@@ -13,7 +13,7 @@ export function createGround(scene, options = {}) {
     scene,
     false,
     false,
-    BABYLON.Constants.TEXTURE_NEAREST_SAMPLINGMODE
+    BABYLON.Constants.TEXTURE_NEAREST_SAMPLINGMODE,
   );
 
   texture.uScale = 32;
@@ -29,6 +29,6 @@ export function createGround(scene, options = {}) {
     ground,
     BABYLON.PhysicsShapeType.BOX,
     { mass: 0 },
-    scene
+    scene,
   );
 }
