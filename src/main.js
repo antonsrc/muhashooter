@@ -45,8 +45,8 @@ async function init() {
   let groundFromHeightMap = await createGround(scene, { size: ground.size });
   createBoxZebra(scene, shadows);
 
-  await loadTrees(scene, shadows, ground.size, groundFromHeightMap);
-  await loadGrass(scene, shadows, ground.size, groundFromHeightMap);
+  await loadTrees(scene, ground.size / 2 - 2, groundFromHeightMap);
+  await loadGrass(scene, ground.size / 2 - 2, groundFromHeightMap);
   await loadCat(scene, shadows, pressedKeys, camera);
 
   initEventListeners(engine);
