@@ -3,7 +3,7 @@ import * as BABYLON from "@babylonjs/core";
 export async function createBullets(scene, shadows, pos) {
   const sphere = BABYLON.MeshBuilder.CreateSphere(
     `bullet`,
-    { diameter: 0.5, segments: 8 },
+    { diameter: 0.3, segments: 4 },
     scene,
   );
 

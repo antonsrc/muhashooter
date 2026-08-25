@@ -15,6 +15,7 @@ import { createShadows } from "./shadows.js";
 import { createGround } from "./groundFromHeightMap.js";
 // import { createGround } from "./ground.js";
 import { createBoxZebra } from "./box-zebra.js";
+import { createEnemy } from "./enemy.js";
 
 const pressedKeys = {};
 
@@ -44,10 +45,11 @@ async function init() {
 
   let groundFromHeightMap = await createGround(scene, { size: ground.size });
   createBoxZebra(scene, shadows);
+  const enemyMesh = await createEnemy(scene, shadows);
 
   await loadTrees(scene, ground.size / 2 - 2, groundFromHeightMap);
   await loadGrass(scene, ground.size / 2 - 2, groundFromHeightMap);
-  await loadCat(scene, shadows, pressedKeys, camera);
+  await loadCat(scene, shadows, pressedKeys, camera, enemyMesh);
 
   initEventListeners(engine);
   initInputDevices(scene, canvas, pressedKeys);

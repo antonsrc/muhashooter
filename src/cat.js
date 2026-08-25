@@ -1,7 +1,6 @@
 import * as BABYLON from "@babylonjs/core";
 
 import { createBullets } from "./spheresBullet.js";
-
 import {
   setAnimation,
   setAnimationBlending,
@@ -33,7 +32,12 @@ let onGround = false;
 const characterHeight = 6;
 const characterGravity = new BABYLON.Vector3(0, -30, 0);
 
-export async function loadCat(scene, shadows, pressedKeys, camera) {
+const activeBullets = [];
+
+export async function loadCat(scene, shadows, pressedKeys, camera, enemyMesh) {
+  await BABYLON.CreateAudioEngineAsync();
+  let hitSound = await BABYLON.CreateSoundAsync("gunshot", "./bullet.mp3");
+
   const catGlb = await BABYLON.LoadAssetContainerAsync("./cat.glb", scene);
   const [meshes] = catGlb.meshes;
   const rootContainer = new BABYLON.TransformNode("rootContainer", scene);
@@ -110,6 +114,29 @@ export async function loadCat(scene, shadows, pressedKeys, camera) {
         physicsAggregate.dispose();
         sphere.dispose();
       }, 5000);
+
+      activeBullets.push({
+        mesh: sphere,
+        physics: physicsAggregate,
+        createdAt: Date.now(),
+      });
+      console.log("activeBullets", activeBullets);
+    }
+
+    for (let i = activeBullets.length - 1; i >= 0; i--) {
+      const bullet = activeBullets[i];
+
+      if (bullet.mesh.intersectsMesh(enemyMesh, false)) {
+        console.log("🎯 ПОПАДАНИЕ");
+
+        hitSound.play({ loop: false });
+
+        bullet.physics.dispose();
+        bullet.mesh.dispose();
+
+        activeBullets.splice(i, 1);
+        break;
+      }
     }
 
     if (pressedKeys.KeyW) {
