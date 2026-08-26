@@ -17,6 +17,7 @@ const listStates = {
 };
 
 const jumpHeight = 25;
+let canShoot = true;
 
 let speed = 1;
 const jumpSpeed = 25;
@@ -34,7 +35,7 @@ const characterGravity = new BABYLON.Vector3(0, -30, 0);
 
 const activeBullets = [];
 
-export async function loadCat(scene, shadows, pressedKeys, camera, enemyMesh) {
+export async function loadCat(scene, shadows, pressedKeys, camera, enemy) {
   await BABYLON.CreateAudioEngineAsync();
   let hitSound = await BABYLON.CreateSoundAsync("gunshot", "./bullet.mp3");
 
@@ -98,44 +99,80 @@ export async function loadCat(scene, shadows, pressedKeys, camera, enemyMesh) {
       position.y.toFixed(2),
     );
 
-    if (pressedKeys["leftMouseButton"] && !pressedKeys.KeyS) {
-      const { sphere, physicsAggregate } = await createBullets(scene, shadows, {
-        x: position.x,
-        y: position.y + 4,
-        z: position.z,
-      });
+    if (pressedKeys["leftMouseButton"] && !pressedKeys.KeyS && canShoot) {
+      canShoot = false;
+      setTimeout(() => {
+        canShoot = true;
+      }, 300); // Скорострельность
 
-      physicsAggregate.body.applyForce(
-        cameraForward.scale(50),
-        sphere.absolutePosition,
+      const spawnPos = new BABYLON.Vector3(
+        position.x,
+        position.y + 2,
+        position.z,
       );
 
-      setTimeout(() => {
-        physicsAggregate.dispose();
-        sphere.dispose();
-      }, 5000);
-
-      activeBullets.push({
-        mesh: sphere,
-        physics: physicsAggregate,
-        createdAt: Date.now(),
-      });
-      console.log("activeBullets", activeBullets);
+      // Создаем пулю и сразу получаем данные для ручного движения
+      const bulletData = createBullets(scene, shadows, spawnPos, cameraForward);
+      activeBullets.push(bulletData);
     }
 
     for (let i = activeBullets.length - 1; i >= 0; i--) {
       const bullet = activeBullets[i];
 
-      if (bullet.mesh.intersectsMesh(enemyMesh, false)) {
-        console.log("🎯 ПОПАДАНИЕ");
-
-        hitSound.play({ loop: false });
-
-        bullet.physics.dispose();
-        bullet.mesh.dispose();
-
+      if (!bullet || !bullet.mesh) {
         activeBullets.splice(i, 1);
-        break;
+        continue;
+      }
+
+      // А) Двигаем пулю вручную: позиция += (вектор скорости * время кадра)
+      bullet.mesh.position.addInPlace(bullet.velocity.scale(deltaTime));
+
+      // Б) Проверяем время жизни пули (например, 3 секунды), чтобы не засорять память
+      if (Date.now() - bullet.createdAt > 3000) {
+        bullet.mesh.dispose();
+        activeBullets.splice(i, 1);
+        continue; // Переходим к следующей пуле
+      }
+
+      // В) Проверяем попадание
+      if (enemy.mesh && !enemy.mesh.isDisposed() && enemy.hp > 0) {
+        if (bullet.mesh.intersectsMesh(enemy.mesh, false)) {
+          console.log("🎯 ПОПАДАНИЕ!");
+
+          hitSound.play({ loop: false });
+          const randomPitch = 0.9 + Math.random() * 0.2;
+          hitSound.playbackRate = randomPitch;
+
+          // Уничтожаем пулю
+          bullet.mesh.dispose();
+          activeBullets.splice(i, 1);
+
+          enemy.hp -= 1;
+          if (enemy.hp == 0) {
+            enemy.mesh.dispose();
+          }
+
+          const originalScale = enemy.mesh.scaling.clone();
+          const hitScale = originalScale.scale(1.1);
+
+          // Резко увеличиваем врага прямо сейчас
+          enemy.mesh.scaling.copyFrom(hitScale);
+
+          // Плавно возвращаем к нормальному размеру за 0.25 секунды (15 кадров при 60 FPS)
+          BABYLON.Animation.CreateAndStartAnimation(
+            "bounceBack",
+            enemy.mesh,
+            "scaling",
+            60, // Кадров в секунду
+            15, // Длительность анимации в кадрах
+            hitScale,
+            originalScale,
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
+            new BABYLON.SineEase(),
+          );
+
+          break; // Одна пуля попадает только в одного врага
+        }
       }
     }
 

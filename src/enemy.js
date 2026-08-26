@@ -20,5 +20,5 @@ export async function createEnemy(scene, shadows) {
     shadows.addShadowCaster(enemyMesh);
   }
 
-  return enemyMesh;
+  return { mesh: enemyMesh, hp: 3 };
 }

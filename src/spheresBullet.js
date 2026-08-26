@@ -1,6 +1,6 @@
 import * as BABYLON from "@babylonjs/core";
 
-export async function createBullets(scene, shadows, pos) {
+export function createBullets(scene, shadows, startPosition, direction) {
   const sphere = BABYLON.MeshBuilder.CreateSphere(
     `bullet`,
     { diameter: 0.3, segments: 4 },
@@ -15,15 +15,14 @@ export async function createBullets(scene, shadows, pos) {
   );
   sphere.material = material;
 
-  shadows.addShadowCaster(sphere);
-  sphere.position.set(pos.x, pos.y, pos.z);
+  sphere.position.copyFrom(startPosition);
 
-  const physicsAggregate = new BABYLON.PhysicsAggregate(
-    sphere,
-    BABYLON.PhysicsShapeType.SPHERE,
-    { mass: 0.01, restitution: 4 },
-    scene,
-  );
+  const bulletSpeed = 150;
+  const velocity = direction.normalize().scale(bulletSpeed);
 
-  return { sphere, physicsAggregate };
+  return {
+    mesh: sphere,
+    velocity: velocity,
+    createdAt: Date.now(),
+  };
 }
