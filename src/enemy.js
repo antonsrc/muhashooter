@@ -20,5 +20,11 @@ export async function createEnemy(scene, shadows) {
     shadows.addShadowCaster(enemyMesh);
   }
 
-  return { mesh: enemyMesh, hp: 3 };
+  return {
+    mesh: enemyMesh,
+    hp: 3,
+    speed: 7,
+    targetPosition: new BABYLON.Vector3(0, 5, 0),
+    isMoving: true,
+  };
 }

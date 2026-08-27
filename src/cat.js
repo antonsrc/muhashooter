@@ -99,6 +99,43 @@ export async function loadCat(scene, shadows, pressedKeys, camera, enemy) {
       position.y.toFixed(2),
     );
 
+    if (enemy.isMoving && enemy.targetPosition) {
+      // 1. Находим вектор направления от врага к цели
+      enemy.targetPosition.copyFrom(catController.getPosition());
+      const direction = enemy.targetPosition.subtract(enemy.mesh.position);
+
+      // 2. Вычисляем расстояние до цели
+      const distanceToTarget = direction.length();
+
+      // 3. Если мы почти пришли (ближе чем 0.1 единицы), останавливаемся
+      if (distanceToTarget < 0.1) {
+        enemy.isMoving = false;
+        enemy.mesh.position.copyFrom(enemy.targetPosition); // Выравниваем точно в цель
+        console.log("Враг достиг цели!");
+
+        // ТУТ МОЖНО ЗАПУСТИТЬ АТАКУ ИЛИ СЛЕДУЮЩЕЕ ДЕЙСТВИЕ
+      } else {
+        // 4. Если не дошли: нормализуем направление (делаем длину вектора = 1)
+        direction.normalize();
+
+        // 5. Двигаем врага: направление * скорость * время кадра
+        const moveStep = direction.scale(enemy.speed * deltaTime);
+        enemy.mesh.position.addInPlace(moveStep);
+
+        // (Опционально) Поворачиваем врага в сторону движения для красоты
+        const targetRotation = BABYLON.Quaternion.FromLookDirectionLH(
+          direction,
+          BABYLON.Axis.Y,
+        );
+        BABYLON.Quaternion.SlerpToRef(
+          enemy.mesh.rotationQuaternion || new BABYLON.Quaternion(),
+          targetRotation,
+          10 * deltaTime,
+          enemy.mesh.rotationQuaternion || new BABYLON.Quaternion(),
+        );
+      }
+    }
+
     if (pressedKeys["leftMouseButton"] && !pressedKeys.KeyS && canShoot) {
       canShoot = false;
       setTimeout(() => {
