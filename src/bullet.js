@@ -1,18 +1,14 @@
 import * as BABYLON from "@babylonjs/core";
 
-export function createBullets(scene, shadows, startPosition, direction) {
+export function createBullets(scene, startPosition, direction) {
   const sphere = BABYLON.MeshBuilder.CreateSphere(
     `bullet`,
-    { diameter: 0.3, segments: 4 },
+    { diameter: 0.3, segments: 3 },
     scene,
   );
 
   const material = new BABYLON.StandardMaterial("material", scene);
-  material.diffuseColor = new BABYLON.Color3(
-    Math.random(),
-    Math.random(),
-    Math.random(),
-  );
+  material.diffuseColor = new BABYLON.Color3(0.9, 0.8, 0.9);
   sphere.material = material;
 
   sphere.position.copyFrom(startPosition);
