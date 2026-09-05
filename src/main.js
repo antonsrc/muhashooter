@@ -20,15 +20,6 @@ import { createEnemy } from "./enemy.js";
 import { createBullets } from "./bullet.js";
 import { setAnimation } from "./utils.js";
 
-const catStates = {
-  walk: "walk",
-  idle: "idle",
-  run: "run",
-  startJump: "startJump",
-  jump: "jump",
-  fall: "fall",
-};
-
 const catValues = {
   lastSpeed: 16,
   walkSpeed: 16,
@@ -36,14 +27,16 @@ const catValues = {
   jumpHeight: 25,
 };
 
-let canShoot = true;
+const catStates = {
+  canShoot: true,
+  onGround: false,
+  current: "idle",
+};
 
 let airFrames = 0;
 const fallFramesLimit = 25;
 
 let inputDirection = BABYLON.Vector3.Zero();
-let currentState = catStates.idle;
-let onGround = false;
 const characterGravity = new BABYLON.Vector3(0, -30, 0);
 
 const activeBullets = [];
@@ -101,23 +94,28 @@ async function init() {
       deltaTime,
       BABYLON.Vector3.Down(),
     );
-    onGround = getState(support);
+    catStates.onGround = getState(support);
 
     const cameraForward = getCameraForwardDirection(camera);
     const cameraRight = getCameraRightDirection(camera);
 
-    let oldState = currentState;
+    let oldState = catStates.current;
 
-    currentState = getNewState(currentState, pressedKeys, scene, catController);
+    catStates.current = getNewState(
+      catStates.current,
+      pressedKeys,
+      scene,
+      catController,
+    );
 
     const velocity = catController.getVelocity();
     const position = catController.getPosition();
     console.log(
       oldState,
       "->",
-      currentState,
+      catStates.current,
       "\t",
-      onGround,
+      catStates.onGround,
       "\t",
       velocity.y.toFixed(1),
       "\t",
@@ -161,10 +159,14 @@ async function init() {
       }
     }
 
-    if (pressedKeys["leftMouseButton"] && !pressedKeys.KeyS && canShoot) {
-      canShoot = false;
+    if (
+      pressedKeys["leftMouseButton"] &&
+      !pressedKeys.KeyS &&
+      catStates.canShoot
+    ) {
+      catStates.canShoot = false;
       setTimeout(() => {
-        canShoot = true;
+        catStates.canShoot = true;
       }, 300); // Скорострельность
 
       const spawnPos = new BABYLON.Vector3(
@@ -271,7 +273,7 @@ async function init() {
       deltaTime,
       catController.getVelocity(),
       animations,
-      currentState,
+      catStates.current,
     );
     catController.setVelocity(desiredLinearVelocity);
     catController.integrate(deltaTime, support, characterGravity);
@@ -296,14 +298,20 @@ function getNewState(currentState, pressedKeys, scene, catController) {
     pressedKeys.KeyA ||
     pressedKeys.KeyS ||
     pressedKeys.KeyD;
-  let idleCondition = onGround && !canMoving && !pressedKeys.Space;
+  let idleCondition = catStates.onGround && !canMoving && !pressedKeys.Space;
   let walkCondition =
-    onGround && canMoving && !pressedKeys.Space && !pressedKeys.ShiftLeft;
+    catStates.onGround &&
+    canMoving &&
+    !pressedKeys.Space &&
+    !pressedKeys.ShiftLeft;
   let runCondition =
-    onGround && canMoving && !pressedKeys.Space && pressedKeys.ShiftLeft;
-  let jumpCondition = onGround && pressedKeys.Space;
+    catStates.onGround &&
+    canMoving &&
+    !pressedKeys.Space &&
+    pressedKeys.ShiftLeft;
+  let jumpCondition = catStates.onGround && pressedKeys.Space;
   let fallCondition =
-    !onGround && !scene.getAnimationGroupByName("jump").isPlaying;
+    !catStates.onGround && !scene.getAnimationGroupByName("jump").isPlaying;
 
   if (fallCondition) {
     airFrames++;
@@ -312,112 +320,112 @@ function getNewState(currentState, pressedKeys, scene, catController) {
   }
 
   switch (currentState) {
-    case catStates.idle:
-      if (onGround) {
+    case "idle":
+      if (catStates.onGround) {
         inputDirection = BABYLON.Vector3.Zero();
         catController.setVelocity(
           new BABYLON.Vector3(velocity.x, 0, velocity.z),
         );
       }
       if (idleCondition) {
-        return catStates.idle;
+        return "idle";
       }
       if (walkCondition) {
-        return catStates.walk;
+        return "walk";
       }
       if (runCondition) {
-        return catStates.run;
+        return "run";
       }
       if (jumpCondition) {
-        return catStates.startJump;
+        return "startJump";
       }
       if (fallCondition) {
-        return catStates.fall;
+        return "fall";
       }
-      return catStates.idle;
-    case catStates.walk:
-      if (onGround) {
+      return "idle";
+    case "walk":
+      if (catStates.onGround) {
         inputDirection = BABYLON.Vector3.Zero();
         catController.setVelocity(
           new BABYLON.Vector3(velocity.x, 0, velocity.z),
         );
       }
       if (idleCondition) {
-        return catStates.idle;
+        return "idle";
       }
       if (jumpCondition) {
-        return catStates.startJump;
+        return "startJump";
       }
       if (walkCondition) {
-        return catStates.walk;
+        return "walk";
       }
       if (runCondition) {
-        return catStates.run;
+        return "run";
       }
       if (fallCondition) {
-        return catStates.fall;
+        return "fall";
       }
 
-      return catStates.walk;
-    case catStates.run:
-      if (onGround) {
+      return "walk";
+    case "run":
+      if (catStates.onGround) {
         inputDirection = BABYLON.Vector3.Zero();
         catController.setVelocity(
           new BABYLON.Vector3(velocity.x, 0, velocity.z),
         );
       }
       if (idleCondition) {
-        return catStates.idle;
+        return "idle";
       }
       if (jumpCondition) {
-        return catStates.startJump;
+        return "startJump";
       }
       if (runCondition) {
-        return catStates.run;
+        return "run";
       }
       if (fallCondition) {
-        return catStates.fall;
+        return "fall";
       }
 
       if (walkCondition) {
-        return catStates.walk;
+        return "walk";
       }
-      return catStates.run;
-    case catStates.startJump:
+      return "run";
+    case "startJump":
       // условие для наклонных поверхностей от ложных анимаций прыжка,
       // когда персонаж поднимается в гору и одновременно нажата клавиша Space
       if (velocity.y == catValues.jumpHeight) {
-        return catStates.jump;
+        return "jump";
       }
-    case catStates.jump:
-      if (onGround) {
+    case "jump":
+      if (catStates.onGround) {
         if (!canMoving) {
-          return catStates.idle;
+          return "idle";
         } else if (!pressedKeys.ShiftLeft) {
-          return catStates.walk;
+          return "walk";
         } else {
-          return catStates.run;
+          return "run";
         }
       }
       if (fallCondition) {
         inputDirection = BABYLON.Vector3.Zero();
-        return catStates.fall;
+        return "fall";
       }
 
-      return catStates.jump;
+      return "jump";
 
-    case catStates.fall:
-      if (onGround) {
+    case "fall":
+      if (catStates.onGround) {
         if (!canMoving) {
-          return catStates.idle;
+          return "idle";
         } else if (!pressedKeys.ShiftLeft) {
-          return catStates.walk;
+          return "walk";
         } else {
-          return catStates.run;
+          return "run";
         }
       } else {
         inputDirection = BABYLON.Vector3.Zero();
-        return catStates.fall;
+        return "fall";
       }
   }
 }
@@ -454,27 +462,27 @@ function getDesiredVelocity(
     currentVelocity.y + characterGravity.y * deltaTime;
 
   switch (currentState) {
-    case catStates.idle:
+    case "idle":
       setAnimation("idle", ["walk", "run", "jump", "fall"], animations);
       return BABYLON.Vector3.Zero();
-    case catStates.walk:
+    case "walk":
       setAnimation("walk", ["idle", "run", "jump", "fall"], animations);
       catValues.lastSpeed = catValues.walkSpeed;
       return inputDirection.scale(catValues.walkSpeed);
-    case catStates.run:
+    case "run":
       setAnimation("run", ["idle", "walk", "jump", "fall"], animations);
       catValues.lastSpeed = catValues.runSpeed;
       return inputDirection.scale(catValues.runSpeed);
-    case catStates.startJump:
+    case "startJump":
       return inputDirection
         .scale(catValues.lastSpeed)
         .addInPlace(BABYLON.Vector3.Up().scale(catValues.jumpHeight));
-    case catStates.jump:
+    case "jump":
       setAnimation("jump", ["idle", "run", "walk", "fall"], animations, false);
       return inputDirection
         .scale(catValues.lastSpeed)
         .addInPlace(new BABYLON.Vector3(0, fallVerticalVelocity, 0));
-    case catStates.fall:
+    case "fall":
       if (airFrames > fallFramesLimit) {
         setAnimation("fall", ["idle", "walk", "jump", "run"], animations);
       }
