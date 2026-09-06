@@ -8,6 +8,7 @@ import { initInputDevices } from "./input-manager.js";
 import { loadCat } from "./cat.js";
 import { loadTrees } from "./trees.js";
 import { loadGrass } from "./grass.js";
+import { loadSounds } from "./sounds.js";
 
 import { createCamera } from "./camera.js";
 import { createLight, setLightningEnvironment } from "./light.js";
@@ -20,34 +21,33 @@ import { createEnemy } from "./enemy.js";
 import { createBullets } from "./bullet.js";
 import { setAnimation } from "./utils.js";
 
+const pressedKeys = {};
+
 const catValues = {
   lastSpeed: 16,
   walkSpeed: 16,
   runSpeed: 40,
   jumpHeight: 25,
+  framesInAirMax: 20,
 };
 
 const catStates = {
   canShoot: true,
   onGround: false,
   current: "idle",
+  framesInAir: 0,
 };
 
-let airFrames = 0;
-const fallFramesLimit = 25;
-
-let inputDirection = BABYLON.Vector3.Zero();
-const characterGravity = new BABYLON.Vector3(0, -30, 0);
-
-const activeBullets = [];
-
-let hitBulletSound = null;
-
-const pressedKeys = {};
+const catBullets = {
+  inAir: [],
+};
 
 const ground = {
   size: 700,
 };
+
+let inputDirection = BABYLON.Vector3.Zero();
+const characterGravity = new BABYLON.Vector3(0, -30, 0);
 
 init().catch(console.error);
 
@@ -69,15 +69,11 @@ async function init() {
   const shadows = createShadows(light);
   setLightningEnvironment(scene);
 
-  let groundFromHeightMap = await createGround(scene, { size: ground.size });
+  const groundFromHeightMap = await createGround(scene, { size: ground.size });
   createBoxZebra(scene, shadows);
-  const enemy = await createEnemy(scene, shadows);
 
   await loadTrees(scene, ground.size / 2 - 2, groundFromHeightMap);
   await loadGrass(scene, ground.size / 2 - 2, groundFromHeightMap);
-
-  await BABYLON.CreateAudioEngineAsync();
-  hitBulletSound = await BABYLON.CreateSoundAsync("gunshot", "./bullet.mp3");
 
   const { meshes, catController, animations } = await loadCat(
     scene,
@@ -86,33 +82,26 @@ async function init() {
     camera,
   );
 
+  const enemy = await createEnemy(scene, shadows);
+
+  const sounds = await loadSounds();
+
   scene.onBeforePhysicsObservable.add(async () => {
     if (scene.deltaTime == undefined) return;
-    let deltaTime = (scene.deltaTime || 1) / 1000;
-
-    const support = catController.checkSupport(
-      deltaTime,
-      BABYLON.Vector3.Down(),
-    );
-    catStates.onGround = getState(support);
+    const dt = (scene.deltaTime || 1) / 1000;
 
     const cameraForward = getCameraForwardDirection(camera);
     const cameraRight = getCameraRightDirection(camera);
 
-    let oldState = catStates.current;
-
-    catStates.current = getNewState(
-      catStates.current,
-      pressedKeys,
-      scene,
-      catController,
-    );
+    const catSurface = catController.checkSupport(dt, BABYLON.Vector3.Down());
+    catStates.onGround = getState(catSurface);
 
     const velocity = catController.getVelocity();
     const position = catController.getPosition();
+
+    catStates.current = getNewState(scene, catController, velocity);
+
     console.log(
-      oldState,
-      "->",
       catStates.current,
       "\t",
       catStates.onGround,
@@ -121,43 +110,6 @@ async function init() {
       "\t",
       position.y.toFixed(2),
     );
-
-    if (enemy.isMoving && enemy.targetPosition) {
-      // 1. Находим вектор направления от врага к цели
-      enemy.targetPosition.copyFrom(catController.getPosition());
-      const direction = enemy.targetPosition.subtract(enemy.mesh.position);
-
-      // 2. Вычисляем расстояние до цели
-      const distanceToTarget = direction.length();
-
-      // 3. Если мы почти пришли (ближе чем 0.1 единицы), останавливаемся
-      if (distanceToTarget < 0.1) {
-        enemy.isMoving = false;
-        enemy.mesh.position.copyFrom(enemy.targetPosition); // Выравниваем точно в цель
-        console.log("Враг достиг цели!");
-
-        // ТУТ МОЖНО ЗАПУСТИТЬ АТАКУ ИЛИ СЛЕДУЮЩЕЕ ДЕЙСТВИЕ
-      } else {
-        // 4. Если не дошли: нормализуем направление (делаем длину вектора = 1)
-        direction.normalize();
-
-        // 5. Двигаем врага: направление * скорость * время кадра
-        const moveStep = direction.scale(enemy.speed * deltaTime);
-        enemy.mesh.position.addInPlace(moveStep);
-
-        // (Опционально) Поворачиваем врага в сторону движения для красоты
-        const targetRotation = BABYLON.Quaternion.FromLookDirectionLH(
-          direction,
-          BABYLON.Axis.Y,
-        );
-        BABYLON.Quaternion.SlerpToRef(
-          enemy.mesh.rotationQuaternion || new BABYLON.Quaternion(),
-          targetRotation,
-          10 * deltaTime,
-          enemy.mesh.rotationQuaternion || new BABYLON.Quaternion(),
-        );
-      }
-    }
 
     if (
       pressedKeys["leftMouseButton"] &&
@@ -177,24 +129,24 @@ async function init() {
 
       // Создаем пулю и сразу получаем данные для ручного движения
       const bulletData = createBullets(scene, spawnPos, cameraForward);
-      activeBullets.push(bulletData);
+      catBullets.inAir.push(bulletData);
     }
 
-    for (let i = activeBullets.length - 1; i >= 0; i--) {
-      const bullet = activeBullets[i];
+    for (let i = catBullets.inAir.length - 1; i >= 0; i--) {
+      const bullet = catBullets.inAir[i];
 
       if (!bullet || !bullet.mesh) {
-        activeBullets.splice(i, 1);
+        catBullets.inAir.splice(i, 1);
         continue;
       }
 
       // А) Двигаем пулю вручную: позиция += (вектор скорости * время кадра)
-      bullet.mesh.position.addInPlace(bullet.velocity.scale(deltaTime));
+      bullet.mesh.position.addInPlace(bullet.velocity.scale(dt));
 
       // Б) Проверяем время жизни пули (например, 3 секунды), чтобы не засорять память
       if (Date.now() - bullet.createdAt > 3000) {
         bullet.mesh.dispose();
-        activeBullets.splice(i, 1);
+        catBullets.inAir.splice(i, 1);
         continue; // Переходим к следующей пуле
       }
 
@@ -203,13 +155,13 @@ async function init() {
         if (bullet.mesh.intersectsMesh(enemy.mesh, false)) {
           console.log("🎯 ПОПАДАНИЕ!");
 
-          hitBulletSound.play({ loop: false });
+          sounds.hitBulletSound.play({ loop: false });
           const randomPitch = 0.9 + Math.random() * 0.2;
-          hitBulletSound.playbackRate = randomPitch;
+          sounds.hitBulletSound.playbackRate = randomPitch;
 
           // Уничтожаем пулю
           bullet.mesh.dispose();
-          activeBullets.splice(i, 1);
+          catBullets.inAir.splice(i, 1);
 
           enemy.hp -= 1;
           if (enemy.hp == 0) {
@@ -240,18 +192,10 @@ async function init() {
       }
     }
 
-    if (pressedKeys.KeyW) {
-      inputDirection.addInPlace(cameraForward);
-    }
-    if (pressedKeys.KeyS) {
-      inputDirection.addInPlace(cameraForward.scale(-1));
-    }
-    if (pressedKeys.KeyD) {
-      inputDirection.addInPlace(cameraRight);
-    }
-    if (pressedKeys.KeyA) {
-      inputDirection.addInPlace(cameraRight.scale(-1));
-    }
+    if (pressedKeys.KeyW) inputDirection.addInPlace(cameraForward);
+    if (pressedKeys.KeyS) inputDirection.addInPlace(cameraForward.scale(-1));
+    if (pressedKeys.KeyD) inputDirection.addInPlace(cameraRight);
+    if (pressedKeys.KeyA) inputDirection.addInPlace(cameraRight.scale(-1));
 
     inputDirection.normalize();
 
@@ -264,20 +208,52 @@ async function init() {
       BABYLON.Quaternion.SlerpToRef(
         meshes.rotationQuaternion,
         targetRotation,
-        10 * deltaTime,
+        10 * dt,
         meshes.rotationQuaternion,
       );
     }
 
-    const desiredLinearVelocity = getDesiredVelocity(
-      deltaTime,
-      catController.getVelocity(),
-      animations,
-      catStates.current,
-    );
+    const desiredLinearVelocity = getDesiredVelocity(dt, velocity, animations);
     catController.setVelocity(desiredLinearVelocity);
-    catController.integrate(deltaTime, support, characterGravity);
-    meshes.parent.position.copyFrom(catController.getPosition());
+    catController.integrate(dt, catSurface, characterGravity);
+    meshes.parent.position.copyFrom(position);
+
+    if (enemy.isMoving && enemy.targetPosition) {
+      // 1. Находим вектор направления от врага к цели
+      enemy.targetPosition.copyFrom(position);
+      const direction = enemy.targetPosition.subtract(enemy.mesh.position);
+
+      // 2. Вычисляем расстояние до цели
+      const distanceToTarget = direction.length();
+
+      // 3. Если мы почти пришли (ближе чем 0.1 единицы), останавливаемся
+      if (distanceToTarget < 0.1) {
+        enemy.isMoving = false;
+        enemy.mesh.position.copyFrom(enemy.targetPosition); // Выравниваем точно в цель
+        console.log("Враг достиг цели!");
+
+        // ТУТ МОЖНО ЗАПУСТИТЬ АТАКУ ИЛИ СЛЕДУЮЩЕЕ ДЕЙСТВИЕ
+      } else {
+        // 4. Если не дошли: нормализуем направление (делаем длину вектора = 1)
+        direction.normalize();
+
+        // 5. Двигаем врага: направление * скорость * время кадра
+        const moveStep = direction.scale(enemy.speed * dt);
+        enemy.mesh.position.addInPlace(moveStep);
+
+        // (Опционально) Поворачиваем врага в сторону движения для красоты
+        const targetRotation = BABYLON.Quaternion.FromLookDirectionLH(
+          direction,
+          BABYLON.Axis.Y,
+        );
+        BABYLON.Quaternion.SlerpToRef(
+          enemy.mesh.rotationQuaternion || new BABYLON.Quaternion(),
+          targetRotation,
+          10 * dt,
+          enemy.mesh.rotationQuaternion || new BABYLON.Quaternion(),
+        );
+      }
+    }
   });
 
   initEventListeners(engine);
@@ -290,9 +266,7 @@ function initEventListeners(engine) {
   window.addEventListener("resize", () => engine.resize());
 }
 
-function getNewState(currentState, pressedKeys, scene, catController) {
-  const velocity = catController.getVelocity();
-
+function getNewState(scene, catController, velocity) {
   const canMoving =
     pressedKeys.KeyW ||
     pressedKeys.KeyA ||
@@ -314,12 +288,12 @@ function getNewState(currentState, pressedKeys, scene, catController) {
     !catStates.onGround && !scene.getAnimationGroupByName("jump").isPlaying;
 
   if (fallCondition) {
-    airFrames++;
+    catStates.framesInAir++;
   } else {
-    airFrames = 0;
+    catStates.framesInAir = 0;
   }
 
-  switch (currentState) {
+  switch (catStates.current) {
     case "idle":
       if (catStates.onGround) {
         inputDirection = BABYLON.Vector3.Zero();
@@ -452,16 +426,10 @@ function getState(supportInfo) {
   return false;
 }
 
-function getDesiredVelocity(
-  deltaTime,
-  currentVelocity,
-  animations,
-  currentState,
-) {
-  const fallVerticalVelocity =
-    currentVelocity.y + characterGravity.y * deltaTime;
+function getDesiredVelocity(dt, currentVelocity, animations) {
+  const fallVerticalVelocity = currentVelocity.y + characterGravity.y * dt;
 
-  switch (currentState) {
+  switch (catStates.current) {
     case "idle":
       setAnimation("idle", ["walk", "run", "jump", "fall"], animations);
       return BABYLON.Vector3.Zero();
@@ -483,7 +451,7 @@ function getDesiredVelocity(
         .scale(catValues.lastSpeed)
         .addInPlace(new BABYLON.Vector3(0, fallVerticalVelocity, 0));
     case "fall":
-      if (airFrames > fallFramesLimit) {
+      if (catStates.framesInAir > catValues.framesInAirMax) {
         setAnimation("fall", ["idle", "walk", "jump", "run"], animations);
       }
       return inputDirection
