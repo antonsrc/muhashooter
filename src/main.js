@@ -21,7 +21,7 @@ import { createEnemy } from "./enemy.js";
 import { createBullets } from "./bullet.js";
 import { setAnimation } from "./utils.js";
 
-const pressedKeys = {};
+const keys = {};
 
 const catValues = {
   lastSpeed: 16,
@@ -40,6 +40,7 @@ const catStates = {
 
 const catBullets = {
   inAir: [],
+  firingRate: 200,
 };
 
 const ground = {
@@ -78,7 +79,7 @@ async function init() {
   const { meshes, catController, animations } = await loadCat(
     scene,
     shadows,
-    pressedKeys,
+    keys,
     camera,
   );
 
@@ -111,15 +112,9 @@ async function init() {
       position.y.toFixed(2),
     );
 
-    if (
-      pressedKeys["leftMouseButton"] &&
-      !pressedKeys.KeyS &&
-      catStates.canShoot
-    ) {
+    if (keys.leftMouseButton && !keys.KeyS && catStates.canShoot) {
       catStates.canShoot = false;
-      setTimeout(() => {
-        catStates.canShoot = true;
-      }, 300); // Скорострельность
+      setTimeout(() => (catStates.canShoot = true), catBullets.firingRate); // Скорострельность
 
       const spawnPos = new BABYLON.Vector3(
         position.x,
@@ -192,10 +187,10 @@ async function init() {
       }
     }
 
-    if (pressedKeys.KeyW) inputDirection.addInPlace(cameraForward);
-    if (pressedKeys.KeyS) inputDirection.addInPlace(cameraForward.scale(-1));
-    if (pressedKeys.KeyD) inputDirection.addInPlace(cameraRight);
-    if (pressedKeys.KeyA) inputDirection.addInPlace(cameraRight.scale(-1));
+    if (keys.KeyW) inputDirection.addInPlace(cameraForward);
+    if (keys.KeyS) inputDirection.addInPlace(cameraForward.scale(-1));
+    if (keys.KeyD) inputDirection.addInPlace(cameraRight);
+    if (keys.KeyA) inputDirection.addInPlace(cameraRight.scale(-1));
 
     inputDirection.normalize();
 
@@ -257,7 +252,7 @@ async function init() {
   });
 
   initEventListeners(engine);
-  initInputDevices(scene, canvas, pressedKeys);
+  initInputDevices(scene, canvas, keys);
 
   engine.runRenderLoop(() => scene.render());
 }
@@ -267,23 +262,13 @@ function initEventListeners(engine) {
 }
 
 function getNewState(scene, catController, velocity) {
-  const canMoving =
-    pressedKeys.KeyW ||
-    pressedKeys.KeyA ||
-    pressedKeys.KeyS ||
-    pressedKeys.KeyD;
-  let idleCondition = catStates.onGround && !canMoving && !pressedKeys.Space;
+  const canMoving = keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD;
+  let idleCondition = catStates.onGround && !canMoving && !keys.Space;
   let walkCondition =
-    catStates.onGround &&
-    canMoving &&
-    !pressedKeys.Space &&
-    !pressedKeys.ShiftLeft;
+    catStates.onGround && canMoving && !keys.Space && !keys.ShiftLeft;
   let runCondition =
-    catStates.onGround &&
-    canMoving &&
-    !pressedKeys.Space &&
-    pressedKeys.ShiftLeft;
-  let jumpCondition = catStates.onGround && pressedKeys.Space;
+    catStates.onGround && canMoving && !keys.Space && keys.ShiftLeft;
+  let jumpCondition = catStates.onGround && keys.Space;
   let fallCondition =
     !catStates.onGround && !scene.getAnimationGroupByName("jump").isPlaying;
 
@@ -375,7 +360,7 @@ function getNewState(scene, catController, velocity) {
       if (catStates.onGround) {
         if (!canMoving) {
           return "idle";
-        } else if (!pressedKeys.ShiftLeft) {
+        } else if (!keys.ShiftLeft) {
           return "walk";
         } else {
           return "run";
@@ -392,7 +377,7 @@ function getNewState(scene, catController, velocity) {
       if (catStates.onGround) {
         if (!canMoving) {
           return "idle";
-        } else if (!pressedKeys.ShiftLeft) {
+        } else if (!keys.ShiftLeft) {
           return "walk";
         } else {
           return "run";

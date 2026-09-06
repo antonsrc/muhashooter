@@ -19,6 +19,7 @@ export function createCamera(scene) {
   camera.angularSensibilityX = 1000;
   camera.angularSensibilityY = 1000;
   camera.inertia = 0.8;
+  camera.inputs.attached.pointers.buttons = [0];
   camera.setTarget(BABYLON.Vector3.Zero());
 
   const canvas = scene.getEngine().getRenderingCanvas();

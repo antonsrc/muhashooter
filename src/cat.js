@@ -4,7 +4,7 @@ import { setAnimationBlending, getAnimationGroups } from "./utils.js";
 
 const characterHeight = 6;
 
-export async function loadCat(scene, shadows, pressedKeys, camera) {
+export async function loadCat(scene, shadows, keys, camera) {
   const catGlb = await BABYLON.LoadAssetContainerAsync("./cat.glb", scene);
   const [meshes] = catGlb.meshes;
   const rootContainer = new BABYLON.TransformNode("rootContainer", scene);
